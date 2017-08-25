@@ -1,0 +1,8 @@
+{
+  "name": "project",
+  "dependencies": {},
+  "globalDependencies": {
+    "three": "registry:dt/three#0.83.0+20170208025302",
+    "tweenjs": "registry:dt/tweenjs#0.6.0+20160510010627"
+  }
+}

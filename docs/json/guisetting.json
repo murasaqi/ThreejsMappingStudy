@@ -1,0 +1,41 @@
+{
+  "preset": "Default",
+  "closed": false,
+  "remembered": {
+    "Default": {
+      "0": {
+        "fadeInSpeed": 1.2367688938288819,
+        "particleSpeed": 0.4937752602813603,
+        "radiusSpeed": 0.09,
+        "particleScaleUpSpeed": 0.8,
+        "particleScaleDownSpeed": 0.1,
+        "particleMaxRad": 1434.07630535295,
+        "particleMinRad": 1000,
+        "randomRange_radius": 0.63,
+        "randomRange_speed": 0.5,
+        "isCameraUpdate": true,
+        "cameraSpeed": 0.01,
+        "cameraRotateX": 0.5,
+        "cameraRotateY": 0.3,
+        "cameraRotateZ": 0.4,
+        "delay_dropin": 0,
+        "delay_rotate": 1,
+        "position_z": 20,
+        "duration_dropin": 3,
+        "duration_rotate": 2
+      }
+    }
+  },
+  "folders": {
+    "particle": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    },
+    "camera": {
+      "preset": "Default",
+      "closed": false,
+      "folders": {}
+    }
+  }
+}
