@@ -1222,6 +1222,38 @@ var Scene01 = (function () {
                 return object;
             }
         };
+        this.reset = function () {
+            _this.isMoveToFront_Pal = false;
+            _this.isScaleZ = false;
+            _this.scaleZ = 1.0;
+            _this.speedScaleZ = 0.0001;
+            _this.isMoveToFront_Pal = false;
+            _this.translateZ_pal = 0;
+            _this.glitchDist = 0.01;
+            _this.time = 0;
+            _this._threshold = 999.0;
+            _this.animationNum = 0.0;
+            _this.moveFlontSpeed = 3.0;
+            _this.isWireGlitch = false;
+            _this.isEnd = false;
+            _this.scene.scale.set(1.2, 1, _this.scaleZ);
+            // this.scene.position.set(1.2,1,this.scaleZ);
+            for (var i = 0; i < _this.uniforms.length; i++) {
+                _this.uniforms[i].glitchDist.value = 0;
+                _this.materials[i].wireframe = false;
+                _this.uniforms[i].animationNum.value = 0;
+            }
+            for (var i = 0; i < _this.pal_objects.length; i++) {
+                _this.pal_objects[i].position.set(-1, -1, 0);
+            }
+            _this.pal_objects[0].translateY(0);
+            _this.pal_objects[0].translateZ(0);
+            _this.scene.rotation.setFromVector3(new THREE.Vector3(0, 0, 0));
+        };
+        this.resetandgo = function () {
+            _this.reset();
+            _this.isMoveToFront_Pal = true;
+        };
         this.renderer = renderer;
         this.vthree = vthree;
         this.createScene();
@@ -1386,34 +1418,6 @@ var Scene01 = (function () {
     // ******************************************************
     Scene01.prototype.onMouseDown = function (e) {
     };
-    Scene01.prototype.reset = function () {
-        this.isMoveToFront_Pal = false;
-        this.isScaleZ = false;
-        this.scaleZ = 1.0;
-        this.speedScaleZ = 0.0001;
-        this.isMoveToFront_Pal = false;
-        this.translateZ_pal = 0;
-        this.glitchDist = 0.01;
-        this.time = 0;
-        this._threshold = 999.0;
-        this.animationNum = 0.0;
-        this.moveFlontSpeed = 3.0;
-        this.isWireGlitch = false;
-        this.isEnd = false;
-        this.scene.scale.set(1.2, 1, this.scaleZ);
-        // this.scene.position.set(1.2,1,this.scaleZ);
-        for (var i = 0; i < this.uniforms.length; i++) {
-            this.uniforms[i].glitchDist.value = 0;
-            this.materials[i].wireframe = false;
-            this.uniforms[i].animationNum.value = 0;
-        }
-        for (var i = 0; i < this.pal_objects.length; i++) {
-            this.pal_objects[i].position.set(this.gui.parameters.pal_position_x, -1, 0);
-        }
-        this.pal_objects[0].translateY(0);
-        this.pal_objects[0].translateZ(0);
-        this.scene.rotation.setFromVector3(new THREE.Vector3(0, 0, 0));
-    };
     // ******************************************************
     Scene01.prototype.update = function (time) {
         if (this.vthree.oscValue[1] == 0) {
@@ -1502,8 +1506,23 @@ var Scene01 = (function () {
         if (this.isMoveToFront_Pal) {
             console.log(this.translateZ_pal);
             if (this.translateZ_pal < -12.8) {
-                this.reset();
-                this.isMoveToFront_Pal = true;
+                // this.reset();
+                // this.isMoveToFront_Pal= true;
+                this.resetandgo();
+            }
+            if (this.translateZ_pal < -8.7 && this.translateZ_pal > -9.8) {
+                var p = Math.random();
+                if (p < 0.01) {
+                    if (Math.random() < 0.4) {
+                        this.isScaleZ = true;
+                        setTimeout(this.resetandgo, 3000);
+                    }
+                    else {
+                        this.isWireGlitch = true;
+                        setTimeout(this.resetandgo, 5000);
+                    }
+                    this.isMoveToFront_Pal = false;
+                }
             }
             this.moveFlontSpeed += (0.001 - this.moveFlontSpeed) * 0.3;
             this.translateZ_pal -= this.moveFlontSpeed;
@@ -21677,11 +21696,13 @@ Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
 var Main = (function () {
     function Main() {
         this.gui = new __WEBPACK_IMPORTED_MODULE_6__GUI__["a" /* default */]();
+        // $.getJSON("json/guisetting.json" , (data) => {
         console.log("main start");
         this.vthree = new __WEBPACK_IMPORTED_MODULE_3__vthree__["a" /* default */](1.0, false);
         this.scene01 = new __WEBPACK_IMPORTED_MODULE_5__Scene01__["a" /* default */](this.vthree.renderer, this.gui, this.vthree);
         this.mapper = new __WEBPACK_IMPORTED_MODULE_4__Mapper__["a" /* default */](this.scene01);
         this.vthree.addScene(this.scene01);
+        // }
         // this.vthree.draw();
     }
     return Main;

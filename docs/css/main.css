@@ -25,13 +25,13 @@ img {
   height: 100%;
   position: absolute;
 }
-.ui {
-  z-index: 12;
-  opacity: 0;
-}
-.capture {
-  z-index: 0;
-}
+/*.ui {*/
+  /*z-index: 12;*/
+  /*opacity: 0;*/
+/*}*/
+/*.capture {*/
+  /*z-index: 0;*/
+/*}*/
 .white {
   background-color: #fff;
   width: 100%;
@@ -40,21 +40,21 @@ img {
   position: absolute;
   opacity: 0;
 }
-.dg.ac {
-  z-index: 99999999999;
-}
+/*.dg.ac {*/
+  /*z-index: 99999999999;*/
+/*}*/
 .dualshock {
   color: #fff;
 }
 .particleNum {
   color: #fff;
 }
-.hide {
-  display: none;
-}
-.debugWrapper {
-  position: absolute;
-  z-index: 999999;
+/*.hide {*/
+  /*display: none;*/
+/*}*/
+/*.debugWrapper {*/
+  /*position: absolute;*/
+  /*z-index: 999999;*/
 /*}*/
 /*.blackScreen {*/
   /*position: fixed;*/

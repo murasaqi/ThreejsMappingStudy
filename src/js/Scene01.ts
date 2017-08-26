@@ -351,7 +351,7 @@ export default class Scene01{
 
     }
 
-    public reset()
+    public reset =()=>
     {
 
         this.isMoveToFront_Pal = false;
@@ -381,7 +381,7 @@ export default class Scene01{
 
         for(let i = 0; i < this.pal_objects.length; i++)
         {
-            this.pal_objects[i].position.set(this.gui.parameters.pal_position_x,-1,0);
+            this.pal_objects[i].position.set(-1,-1,0);
         }
 
 
@@ -390,6 +390,14 @@ export default class Scene01{
         this.scene.rotation.setFromVector3(new THREE.Vector3(0,0,0));
     }
 
+
+    public resetandgo =()=>
+    {
+        this.reset();
+        this.isMoveToFront_Pal = true;
+
+
+    }
     // ******************************************************
 
 
@@ -540,8 +548,35 @@ export default class Scene01{
             console.log(this.translateZ_pal);
             if(this.translateZ_pal < -12.8)
             {
-                this.reset();
-                this.isMoveToFront_Pal= true;
+
+
+                    // this.reset();
+                    // this.isMoveToFront_Pal= true;
+                this.resetandgo();
+
+
+            }
+            if(this.translateZ_pal < -8.7 && this.translateZ_pal > -9.8)
+            {
+                let p = Math.random();
+
+
+                if(p < 0.01)
+                {
+                    if(Math.random() < 0.4)
+
+                    {
+                        this.isScaleZ = true;
+                        setTimeout(this.resetandgo, 3000);
+                    } else
+                    {
+                        this.isWireGlitch = true;
+                        setTimeout(this.resetandgo, 5000);
+                    }
+
+
+                    this.isMoveToFront_Pal = false;
+                }
             }
             this.moveFlontSpeed += (0.001 - this.moveFlontSpeed) * 0.3;
             this.translateZ_pal -= this.moveFlontSpeed;

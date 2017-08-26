@@ -25,12 +25,15 @@ class Main
     constructor()
     {
 
-        console.log("main start")
-        this.vthree = new Vthree(1.0,false);
-        this.scene01 = new Scene01(this.vthree.renderer,this.gui, this.vthree);
-        this.mapper = new Mapper(this.scene01);
+        // $.getJSON("json/guisetting.json" , (data) => {
+            console.log("main start")
+            this.vthree = new Vthree(1.0,false);
+            this.scene01 = new Scene01(this.vthree.renderer,this.gui, this.vthree);
+            this.mapper = new Mapper(this.scene01);
 
-        this.vthree.addScene(this.scene01);
+            this.vthree.addScene(this.scene01);
+        // }
+
         // this.vthree.draw();
     }
 }
