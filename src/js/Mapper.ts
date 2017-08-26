@@ -114,6 +114,7 @@ export default class Mapper{
 
         this.mask = new THREE.Mesh(this.maskGeo,this.maskMat);
         this.mask.position.set(0,0,-0.79);
+        this.mask.name = "mask";
         this.scene.add(this.mask);
 
         var geometry = new THREE.PlaneGeometry( 0.04,0.04 );
@@ -210,12 +211,17 @@ export default class Mapper{
 
     public onKeyDown = (e:KeyboardEvent) => {
 
-        if(e.key == "m")
+        if(e.key == "M")
         {
             for(let i = 0; i < this.dragableObjs.length; i++)
             {
-                this.dragableObjs[i].material.opacity = Math.abs(1.0-this.dragableObjs[i].material.opacity);
+                if(this.dragableObjs[i].name != "mask")
+                {
+                    this.dragableObjs[i].material.opacity = Math.abs(1.0-this.dragableObjs[i].material.opacity);
+                }
+
             }
+            
         }
 
     }

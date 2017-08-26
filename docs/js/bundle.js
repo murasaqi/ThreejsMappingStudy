@@ -978,9 +978,11 @@ var Mapper = (function () {
             _this.renderer.setSize(window.innerWidth, window.innerHeight);
         };
         this.onKeyDown = function (e) {
-            if (e.key == "m") {
+            if (e.key == "M") {
                 for (var i = 0; i < _this.dragableObjs.length; i++) {
-                    _this.dragableObjs[i].material.opacity = Math.abs(1.0 - _this.dragableObjs[i].material.opacity);
+                    if (_this.dragableObjs[i].name != "mask") {
+                        _this.dragableObjs[i].material.opacity = Math.abs(1.0 - _this.dragableObjs[i].material.opacity);
+                    }
                 }
             }
         };
@@ -1094,6 +1096,7 @@ var Mapper = (function () {
         this.maskMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 1.0 });
         this.mask = new THREE.Mesh(this.maskGeo, this.maskMat);
         this.mask.position.set(0, 0, -0.79);
+        this.mask.name = "mask";
         this.scene.add(this.mask);
         var geometry = new THREE.PlaneGeometry(0.04, 0.04);
         for (var i = 0; i < this.screenGeo.vertices.length; i++) {
