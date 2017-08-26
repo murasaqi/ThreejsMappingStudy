@@ -561,7 +561,7 @@ export default class Scene01{
                 let p = Math.random();
 
 
-                if(p < 0.01)
+                if(p < 0.02)
                 {
                     if(Math.random() < 0.4)
 

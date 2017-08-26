@@ -1006,13 +1006,14 @@ var Mapper = (function () {
             // var objs = ray.intersectObjects(this.dragableObjs, true);
             if (_this.raycastedObjs.length > 0) {
                 console.log(_this.isMouseDown);
-                // 交差していたらobjsが1以上になるので、やりたいことをやる。
-                _this.raycastedObjs[0].object.position.x = pos.x * 1.18;
-                _this.raycastedObjs[0].object.position.y = pos.y * 1.2;
-                if (_this.screenGeo.vertices.length > Number(_this.raycastedObjs[0].object.name)) {
-                    _this.screenGeo.vertices[Number(_this.raycastedObjs[0].object.name)].x = pos.x * 1.18;
-                    _this.screenGeo.vertices[Number(_this.raycastedObjs[0].object.name)].y = pos.y * 1.2;
-                    _this.screenGeo.verticesNeedUpdate = true;
+                for (var i = 0; i < _this.raycastedObjs.length; i++) {
+                    _this.raycastedObjs[i].object.position.x = pos.x * 1.18;
+                    _this.raycastedObjs[i].object.position.y = pos.y * 1.2;
+                    if (Number(_this.raycastedObjs[0].object.name)) {
+                        _this.screenGeo.vertices[Number(_this.raycastedObjs[i].object.name)].x = pos.x * 1.18;
+                        _this.screenGeo.vertices[Number(_this.raycastedObjs[i].object.name)].y = pos.y * 1.2;
+                        _this.screenGeo.verticesNeedUpdate = true;
+                    }
                 }
             }
         };
@@ -1086,7 +1087,7 @@ var Mapper = (function () {
             magFilter: THREE.NearestFilter,
             format: THREE.RGBAFormat
         });
-        this.screenGeo = new THREE.PlaneGeometry(1 * aspect, 1, 3, 3);
+        this.screenGeo = new THREE.PlaneGeometry(1 * aspect, 1, 4, 4);
         this.screenMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: this.rendertarget.texture });
         var screen = new THREE.Mesh(this.screenGeo, this.screenMat);
         // screen.material.wireframe = true;
@@ -1515,7 +1516,7 @@ var Scene01 = (function () {
             }
             if (this.translateZ_pal < -9.7 && this.translateZ_pal > -9.8) {
                 var p = Math.random();
-                if (p < 0.01) {
+                if (p < 0.02) {
                     if (Math.random() < 0.4) {
                         this.isScaleZ = true;
                         setTimeout(this.resetandgo, 2500);

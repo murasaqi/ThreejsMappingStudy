@@ -98,7 +98,7 @@ export default class Mapper{
                 format: THREE.RGBAFormat
             }
         );
-        this.screenGeo = new THREE.PlaneGeometry(1*aspect,1,3,3);
+        this.screenGeo = new THREE.PlaneGeometry(1*aspect,1,4,4);
         this.screenMat = new THREE.MeshBasicMaterial({side:THREE.DoubleSide,map: this.rendertarget.texture});
 
         let screen = new THREE.Mesh(this.screenGeo,this.screenMat );
@@ -221,7 +221,7 @@ export default class Mapper{
                 }
 
             }
-            
+
         }
 
     }
@@ -253,18 +253,23 @@ export default class Mapper{
         // var objs = ray.intersectObjects(this.dragableObjs, true);
         if (this.raycastedObjs.length > 0) {
             console.log(this.isMouseDown);
-            // 交差していたらobjsが1以上になるので、やりたいことをやる。
-            this.raycastedObjs[0].object.position.x = pos.x*1.18;
-            this.raycastedObjs[0].object.position.y = pos.y*1.2;
 
-            if(this.screenGeo.vertices.length > Number(this.raycastedObjs[0].object.name))
+            for(let i = 0; i < this.raycastedObjs.length; i++)
             {
-                this.screenGeo.vertices[Number(this.raycastedObjs[0].object.name)].x = pos.x*1.18;
-                this.screenGeo.vertices[Number(this.raycastedObjs[0].object.name)].y = pos.y*1.2;
 
-                this.screenGeo.verticesNeedUpdate = true;
+
+                this.raycastedObjs[i].object.position.x = pos.x*1.18;
+                this.raycastedObjs[i].object.position.y = pos.y*1.2;
+
+                if(Number(this.raycastedObjs[0].object.name))
+                {
+                    this.screenGeo.vertices[Number(this.raycastedObjs[i].object.name)].x = pos.x*1.18;
+                    this.screenGeo.vertices[Number(this.raycastedObjs[i].object.name)].y = pos.y*1.2;
+
+                    this.screenGeo.verticesNeedUpdate = true;
+                }
+
             }
-
 
 
 
