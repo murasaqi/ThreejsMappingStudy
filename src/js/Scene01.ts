@@ -556,7 +556,7 @@ export default class Scene01{
 
 
             }
-            if(this.translateZ_pal < -8.7 && this.translateZ_pal > -9.8)
+            if(this.translateZ_pal < -9.7 && this.translateZ_pal > -9.8)
             {
                 let p = Math.random();
 
@@ -567,7 +567,7 @@ export default class Scene01{
 
                     {
                         this.isScaleZ = true;
-                        setTimeout(this.resetandgo, 3000);
+                        setTimeout(this.resetandgo, 2500);
                     } else
                     {
                         this.isWireGlitch = true;
