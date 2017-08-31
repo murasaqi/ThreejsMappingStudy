@@ -31,12 +31,14 @@ export default class Mapper{
     private isMouseDown:boolean = false;
 
 
-    private planePosZ:number = -10;
+    private planePosZ:number = 0;
 
     private raycastedObjs:any[] = [];
 
     public rendertarget:THREE.WebGLRenderTarget;
     public scene01:any;
+
+    public initPlaneVerices:THREE.Vector3[] = [];
 
 
     // ******************************************************
@@ -120,7 +122,8 @@ export default class Mapper{
             var object = new THREE.Mesh( geometry, new THREE.MeshBasicMaterial( { color: 0xffffff,side:THREE.DoubleSide,transparent:true,opacity:1.0 } ) );
             object.position.x = this.screenGeo.vertices[i].x;
             object.position.y = this.screenGeo.vertices[i].y;
-            object.position.z = -0.79;
+            object.position.z = this.screenGeo.vertices[i].z;
+            this.initPlaneVerices.push(this.screenGeo.vertices[i].clone());
             // object.rotation.x = Math.random() * 2 * Math.PI;
             // object.rotation.y = Math.random() * 2 * Math.PI;
             // object.rotation.z = Math.random() * 2 * Math.PI;
@@ -214,6 +217,32 @@ export default class Mapper{
                 {
                     this.dragableObjs[i].material.opacity = Math.abs(1.0-this.dragableObjs[i].material.opacity);
                 }
+
+            }
+
+        }
+
+        if(e.key == "C")
+        {
+            this.controls.reset();
+        }
+
+        if(e.key == "R")
+        {
+            this.camera.position.set(0,0,1000);
+            this.camera.rotation.set(0,0,0);
+
+
+            for(let i = 0; i < this.screenGeo.vertices.length; i++) {
+
+
+                this.screenGeo.vertices[i].x = this.initPlaneVerices[i].x;
+                this.screenGeo.vertices[i].y = this.initPlaneVerices[i].y;
+                this.screenGeo.vertices[i].z = this.initPlaneVerices[i].z;
+                this.dragableObjs[i].position.x = this.initPlaneVerices[i].x;
+                this.dragableObjs[i].position.y = this.initPlaneVerices[i].y;
+                this.dragableObjs[i].position.z = this.initPlaneVerices[i].z;
+                this.screenGeo.verticesNeedUpdate = true;
 
             }
 

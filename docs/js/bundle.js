@@ -138,8 +138,9 @@ var Mapper = (function () {
         this.screenHeight = window.innerHeight;
         this.dragableObjs = [];
         this.isMouseDown = false;
-        this.planePosZ = -10;
+        this.planePosZ = 0;
         this.raycastedObjs = [];
+        this.initPlaneVerices = [];
         this.onWindowResize = function () {
             _this.camera.aspect = window.innerWidth / window.innerHeight;
             _this.camera.updateProjectionMatrix();
@@ -151,6 +152,22 @@ var Mapper = (function () {
                     if (_this.dragableObjs[i].name != "mask") {
                         _this.dragableObjs[i].material.opacity = Math.abs(1.0 - _this.dragableObjs[i].material.opacity);
                     }
+                }
+            }
+            if (e.key == "C") {
+                _this.controls.reset();
+            }
+            if (e.key == "R") {
+                _this.camera.position.set(0, 0, 1000);
+                _this.camera.rotation.set(0, 0, 0);
+                for (var i = 0; i < _this.screenGeo.vertices.length; i++) {
+                    _this.screenGeo.vertices[i].x = _this.initPlaneVerices[i].x;
+                    _this.screenGeo.vertices[i].y = _this.initPlaneVerices[i].y;
+                    _this.screenGeo.vertices[i].z = _this.initPlaneVerices[i].z;
+                    _this.dragableObjs[i].position.x = _this.initPlaneVerices[i].x;
+                    _this.dragableObjs[i].position.y = _this.initPlaneVerices[i].y;
+                    _this.dragableObjs[i].position.z = _this.initPlaneVerices[i].z;
+                    _this.screenGeo.verticesNeedUpdate = true;
                 }
             }
         };
@@ -244,7 +261,8 @@ var Mapper = (function () {
             var object = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 1.0 }));
             object.position.x = this.screenGeo.vertices[i].x;
             object.position.y = this.screenGeo.vertices[i].y;
-            object.position.z = -0.79;
+            object.position.z = this.screenGeo.vertices[i].z;
+            this.initPlaneVerices.push(this.screenGeo.vertices[i].clone());
             // object.rotation.x = Math.random() * 2 * Math.PI;
             // object.rotation.y = Math.random() * 2 * Math.PI;
             // object.rotation.z = Math.random() * 2 * Math.PI;
