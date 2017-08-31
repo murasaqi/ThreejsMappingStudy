@@ -1,5 +1,5 @@
 declare function require(x: string): any;
-import "./stats.js";
+// import "./stats.js";
 import * as $ from "jquery";
 import "./OrbitControls.js";
 

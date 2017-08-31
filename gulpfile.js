@@ -11,12 +11,21 @@ const stylus = require('gulp-stylus');
 const browserSync = require('browser-sync').create();
 const reload      = browserSync.reload;
 
+const imagemin = require('gulp-imagemin');
+
+
+
 // webpackの設定ファイルの読み込み
 const webpackConfig = require("./webpack.config");
 
 // タスクの定義。 ()=> の部分はfunction() でも可
 
 
+gulp.task('img', () =>
+gulp.src('src/images/*')
+    .pipe(imagemin())
+    .pipe(gulp.dest('dist/images'))
+);
 
 gulp.task('server', ()=> {
     return browserSync.init({

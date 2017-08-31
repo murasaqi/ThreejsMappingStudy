@@ -54,6 +54,8 @@ export default class Scene01{
     private isWireGlitch:boolean = false;
     private isEnd:boolean = false;
 
+    public isUpdate:boolean = true;
+
 
 
     // ******************************************************
@@ -61,7 +63,8 @@ export default class Scene01{
         this.renderer = renderer;
         this.vthree = vthree;
         this.createScene();
-        this.createImage();
+
+        // this.createImage();
         this.gui = gui;
 
         console.log("scene created!")
@@ -98,9 +101,14 @@ export default class Scene01{
         this.scene.add(directionalLight);
 
 
-        var onProgress = function (xhr) {
+        var onProgress =  (xhr)=> {
             if (xhr.lengthComputable) {
                 var percentComplete = xhr.loaded / xhr.total * 100;
+                if(Math.round(percentComplete,2) == 100)
+                {
+                    this.isUpdate = true;
+
+                }
                 console.log(Math.round(percentComplete, 2) + '% downloaded');
             }
         };
@@ -110,8 +118,8 @@ export default class Scene01{
 
         var loader = new THREE.ColladaLoader();
         loader.options.convertUpAxis = true;
-        for(let i = 0; i < 1; i++)
-        {
+        // for(let i = 0; i < 1; i++)
+        // {
             loader.load( './models/pal/pal.dae', ( collada )=> {
                 var object = collada.scene;
                 console.log(object);
@@ -122,7 +130,7 @@ export default class Scene01{
                 this.pal_objects.push(object);
                 this.scene.add( object );
             },onProgress, onError );
-        }
+        // }
 
 
 
@@ -403,6 +411,9 @@ export default class Scene01{
 
     public update(time)
     {
+        if(this.isUpdate)
+        {
+
         if(this.vthree.oscValue[1] == 0)
         {
             this.reset()
@@ -619,8 +630,9 @@ export default class Scene01{
         this.scene.rotation.setFromVector3(new THREE.Vector3(0,this.gui.parameters.scene_rotation_y,0));
 
 
+
     }
 
-
+    }
 
 }

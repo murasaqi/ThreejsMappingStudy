@@ -4,7 +4,7 @@ import Scene01 from "Scene01";
 export default class Mapper{
 
     public scene: THREE.Scene;
-    public camera: THREE.OrthographicCamera;
+    public camera: THREE.PerspectiveCamera;
     private renderer:THREE.WebGLRenderer;
     private geometry:THREE.BoxGeometry;
     private material:THREE.MeshBasicMaterial;
@@ -30,12 +30,13 @@ export default class Mapper{
 
     private isMouseDown:boolean = false;
 
-    private planePosZ:number = -0.8;
+
+    private planePosZ:number = -10;
 
     private raycastedObjs:any[] = [];
 
     public rendertarget:THREE.WebGLRenderTarget;
-    public scene01:Scene01;
+    public scene01:any;
 
 
     // ******************************************************
@@ -62,23 +63,11 @@ export default class Mapper{
         this.renderer.shadowMap.enabled = true;
         this.renderer.shadowMap.type = THREE.PCFShadowMap;
 
-        var frustumSize = 1000;
-        this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.01, 10000 );
-        this.camera.position.set(0,0,0.001);
-
-        this.camera.position.set(0,0,0);
-
+        this.camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 10000 );
+        this.camera.position.z = 1000;
 
 
         this.scene = new THREE.Scene();
-        // this.controls = new THREE.TrackballControls(this.camera );
-        // this.controls.rotateSpeed = 1.0;
-        // this.controls.zoomSpeed = 1.2;
-        // this.controls.panSpeed = 0.8;
-        // this.controls.noZoom = false;
-        // this.controls.noPan = false;
-        // this.controls.staticMoving = true;
-        // this.controls.dynamicDampingFactor = 0.3;
 
         this.scene.add( new THREE.AmbientLight( 0xffffff ) );
 
@@ -98,8 +87,12 @@ export default class Mapper{
                 format: THREE.RGBAFormat
             }
         );
-        this.screenGeo = new THREE.PlaneGeometry(1*aspect,1,4,4);
+        this.rendertarget.texture.wrapS = THREE.ClampToEdgeWrapping;
+        this.rendertarget.texture.wrapT = THREE.ClampToEdgeWrapping;
+        this.rendertarget.texture.minFilter = THREE.LinearFilter;
+        this.screenGeo = new THREE.PlaneGeometry(1000*aspect,1000,4,4);
         this.screenMat = new THREE.MeshBasicMaterial({side:THREE.DoubleSide,map: this.rendertarget.texture});
+
 
         let screen = new THREE.Mesh(this.screenGeo,this.screenMat );
 
@@ -117,8 +110,7 @@ export default class Mapper{
         this.mask.name = "mask";
         this.scene.add(this.mask);
 
-        var geometry = new THREE.PlaneGeometry( 0.04,0.04 );
-
+        var geometry = new THREE.BoxGeometry( 15,15,15 );
 
 
 
@@ -145,10 +137,7 @@ export default class Mapper{
         }
 
         this.dragableObjs.push(this.mask);
-        //
-        // var dragControls = new THREE.DragControls( this.dragableObjs, this.camera, this.renderer.domElement );
-        // dragControls.addEventListener( 'dragstart', ( event )=> { this.controls.enabled = false; } );
-        // dragControls.addEventListener( 'dragend', ( event )=> { this.controls.enabled = true; } );
+
 
 
 
@@ -157,32 +146,38 @@ export default class Mapper{
         this.raycaster = new THREE.Raycaster();
 
         this.container.appendChild(this.renderer.domElement);
-        // this.stats = new Stats();
-        // this.container.appendChild( this.stats.domElement );
-        document.addEventListener( 'mousemove', this.onMouseMove, false );
-        document.addEventListener( 'mousedown', this.onMouseDown, false );
-        document.addEventListener( 'mouseup', this.onMouseUp, false );
+
         document.addEventListener('keydown',this.onKeyDown,false);
         window.addEventListener( 'resize', this.onWindowResize, false );
+        document.addEventListener("mousemove", this.onMouseMove, true);
+        // window.addEventListener( 'mousemove', , false );
 
 
+        this.controls = new THREE.TrackballControls( this.camera );
+        this.controls.rotateSpeed = 1.0;
+        this.controls.zoomSpeed = 1.2;
+        this.controls.panSpeed = 0.8;
+        this.controls.noZoom = false;
+        this.controls.noPan = false;
+        this.controls.staticMoving = true;
+        this.controls.dynamicDampingFactor = 0.3;
+        var dragControls = new THREE.DragControls( this.dragableObjs, this.camera, this.renderer.domElement );
+        dragControls.addEventListener( 'dragstart', ( event )=> { this.controls.enabled = false; } );
+        dragControls.addEventListener( 'dragend', ( event )=> {this.controls.enabled = true; } );
 
     }
+
+
 
 
     public onWindowResize =()=> {
-        var aspect = window.innerWidth / window.innerHeight;
 
-        // this.camera.left   = - this.frustumSize * aspect / 2;
-        // this.camera.right  =   this.frustumSize * aspect / 2;
-        // this.camera.top    =   this.frustumSize / 2;
-        // this.camera.bottom = - this.frustumSize / 2;
-        // this.camera.updateProjectionMatrix();
+        this.camera.aspect = window.innerWidth / window.innerHeight;
+        this.camera.updateProjectionMatrix();
+
         this.renderer.setSize( window.innerWidth, window.innerHeight );
+
     }
-
-
-
 
     // ******************************************************
     public click()
@@ -227,53 +222,18 @@ export default class Mapper{
     }
     public onMouseMove =(e)=>
     {
+        console.log("move!!!");
 
 
-
-        var rect = e.target.getBoundingClientRect();
-
-        // スクリーン上のマウス位置を取得する
-        var mouseX = e.clientX - rect.left;
-        var mouseY = e.clientY - rect.top;
-
-        // 取得したスクリーン座標を-1〜1に正規化する（WebGLは-1〜1で座標が表現される）
-        mouseX =  (mouseX/window.innerWidth)  * 2 - 1;
-        mouseY = -(mouseY/window.innerHeight) * 2 + 1;
-
-        // マウスの位置ベクトル
-        var pos = new THREE.Vector3(mouseX, mouseY, 0.1);
-        var _pos = new THREE.Vector3(mouseX, mouseY, this.planePosZ);
-        pos.unproject(this.camera);
-        _pos.unproject(this.camera);
-        var ray = new THREE.Raycaster(this.camera.position, pos.sub(this.camera.position).normalize());
-        // var _ray = new THREE.Raycaster(this.camera.position, _pos.sub(this.camera.position).normalize());
-
-        // 交差判定
-        // 引数は取得対象となるMeshの配列を渡す。以下はシーン内のすべてのオブジェクトを対象に。
-        // var objs = ray.intersectObjects(this.dragableObjs, true);
-        if (this.raycastedObjs.length > 0) {
-            console.log(this.isMouseDown);
-
-            for(let i = 0; i < this.raycastedObjs.length; i++)
-            {
+            for(let i = 0; i < this.screenGeo.vertices.length; i++) {
 
 
-                this.raycastedObjs[i].object.position.x = pos.x*1.18;
-                this.raycastedObjs[i].object.position.y = pos.y*1.2;
-
-                if(Number(this.raycastedObjs[0].object.name))
-                {
-                    this.screenGeo.vertices[Number(this.raycastedObjs[i].object.name)].x = pos.x*1.18;
-                    this.screenGeo.vertices[Number(this.raycastedObjs[i].object.name)].y = pos.y*1.2;
-
-                    this.screenGeo.verticesNeedUpdate = true;
-                }
+                this.screenGeo.vertices[i].x = this.dragableObjs[i].position.x;
+                this.screenGeo.vertices[i].y = this.dragableObjs[i].position.y;
+                this.screenGeo.vertices[i].z = this.dragableObjs[i].position.z;
+                this.screenGeo.verticesNeedUpdate = true;
 
             }
-
-
-
-        }
     }
 
     // ******************************************************
@@ -337,8 +297,13 @@ export default class Mapper{
 
         this.scene01.update();
 
-        // this.controls.update();
-        this.renderer.render( this.scene01.scene, this.scene01.camera ,this.rendertarget);
+        this.controls.update();
+        if(this.scene01.isUpdate)
+        {
+            this.renderer.render( this.scene01.scene, this.scene01.camera ,this.rendertarget);
+        }
+
+
         this.renderer.render( this.scene, this.camera );
 
     }

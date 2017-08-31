@@ -68,6 +68,818 @@
 /************************************************************************/
 /******/ ([
 /* 0 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__GUIParameters__ = __webpack_require__(12);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_dat_gui__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_dat_gui___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_dat_gui__);
+
+
+var GUI = (function () {
+    // public camera:any;
+    function GUI() {
+        // var fizzyText = new FizzyText();
+        this.parameters = new __WEBPACK_IMPORTED_MODULE_0__GUIParameters__["a" /* default */];
+        console.log(this.parameters);
+        // this.gui = new dat.GUI({ load: data, width:400});
+        this.gui = new __WEBPACK_IMPORTED_MODULE_1_dat_gui__["GUI"](this.parameters);
+        // this.gui.remember();
+        this.gui.remember(this.parameters);
+        this.rendering = this.gui.addFolder('animation');
+        this.scene03 = this.gui.addFolder("scene03");
+        this.particle = this.gui.addFolder("particle");
+        this.image = this.gui.addFolder("image");
+        this.parking = this.gui.addFolder("parking");
+        this.pal = this.gui.addFolder("pal");
+        // this.camera = this.gui.addFolder('camera');
+        this.init();
+    }
+    GUI.prototype.init = function () {
+        this.rendering.add(this.parameters, 'threshold', -30.0, 30.0);
+        this.scene03.add(this.parameters, "drawArms01", true);
+        this.scene03.add(this.parameters, "drawArms02", true);
+        this.scene03.add(this.parameters, "drawArms03", true);
+        this.particle.add(this.parameters, "particleStartX", -3.0, 3.0);
+        this.particle.add(this.parameters, "particleStartY", -5.0, 5.0);
+        this.particle.add(this.parameters, "particleStartZ", -1.0, 1.0);
+        this.image.add(this.parameters, "image_speed", 0.0, 0.1);
+        this.image.add(this.parameters, "image_noiseScale", 0.0, 1.0);
+        this.image.add(this.parameters, "image_noiseSeed", 0.0, 3.0);
+        this.image.add(this.parameters, "image_speed_scale__vertex", 0.0, 0.1);
+        this.image.add(this.parameters, "image_noiseScale_vertex", 0.0, 10.0);
+        this.image.add(this.parameters, "image_noiseSeed_vertex", 0.0, 15.0);
+        this.image.add(this.parameters, "image_distance_threshold", 0.0, 2.0);
+        this.image.add(this.parameters, "image_positionX", -30.0, 30.0);
+        this.image.add(this.parameters, "image_positionY", -30.0, 30.0);
+        this.image.add(this.parameters, "image_positionZ", -32.0, 32.0);
+        this.parking.add(this.parameters, "parking_vGlitchArea", 0.0, 10.0);
+        this.pal.add(this.parameters, "pal_position_x", -5.0, 5.0);
+        this.pal.add(this.parameters, "scene_rotation_y", -1.0, 1.0);
+    };
+    return GUI;
+}());
+/* harmony default export */ __webpack_exports__["a"] = (GUI);
+;
+
+
+/***/ }),
+/* 1 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+var Stats = __webpack_require__(11);
+var Mapper = (function () {
+    // ******************************************************
+    function Mapper(scnene01) {
+        var _this = this;
+        this.mouse = new THREE.Vector2();
+        this.screenWidth = window.innerWidth;
+        this.screenHeight = window.innerHeight;
+        this.dragableObjs = [];
+        this.isMouseDown = false;
+        this.planePosZ = -10;
+        this.raycastedObjs = [];
+        this.onWindowResize = function () {
+            _this.camera.aspect = window.innerWidth / window.innerHeight;
+            _this.camera.updateProjectionMatrix();
+            _this.renderer.setSize(window.innerWidth, window.innerHeight);
+        };
+        this.onKeyDown = function (e) {
+            if (e.key == "M") {
+                for (var i = 0; i < _this.dragableObjs.length; i++) {
+                    if (_this.dragableObjs[i].name != "mask") {
+                        _this.dragableObjs[i].material.opacity = Math.abs(1.0 - _this.dragableObjs[i].material.opacity);
+                    }
+                }
+            }
+        };
+        this.onMouseMove = function (e) {
+            console.log("move!!!");
+            for (var i = 0; i < _this.screenGeo.vertices.length; i++) {
+                _this.screenGeo.vertices[i].x = _this.dragableObjs[i].position.x;
+                _this.screenGeo.vertices[i].y = _this.dragableObjs[i].position.y;
+                _this.screenGeo.vertices[i].z = _this.dragableObjs[i].position.z;
+                _this.screenGeo.verticesNeedUpdate = true;
+            }
+        };
+        // ******************************************************
+        this.onMouseDown = function (e) {
+            var rect = e.target.getBoundingClientRect();
+            // スクリーン上のマウス位置を取得する
+            var mouseX = e.clientX - rect.left;
+            var mouseY = e.clientY - rect.top;
+            // 取得したスクリーン座標を-1〜1に正規化する（WebGLは-1〜1で座標が表現される）
+            mouseX = (mouseX / window.innerWidth) * 2 - 1;
+            mouseY = -(mouseY / window.innerHeight) * 2 + 1;
+            // マウスの位置ベクトル
+            var pos = new THREE.Vector3(mouseX, mouseY, 1);
+            var _pos = new THREE.Vector3(mouseX, mouseY, _this.planePosZ);
+            // pos はスクリーン座標系なので、オブジェクトの座標系に変換
+            // オブジェクト座標系は今表示しているカメラからの視点なので、第二引数にカメラオブジェクトを渡す
+            // new THREE.Projector.unprojectVector(pos, camera); ↓最新版では以下の方法で得る
+            pos.unproject(_this.camera);
+            _pos.unproject(_this.camera);
+            // 始点、向きベクトルを渡してレイを作成
+            var ray = new THREE.Raycaster(_this.camera.position, pos.sub(_this.camera.position).normalize());
+            // 交差判定
+            // 引数は取得対象となるMeshの配列を渡す。以下はシーン内のすべてのオブジェクトを対象に。
+            _this.raycastedObjs = ray.intersectObjects(_this.dragableObjs);
+            //ヒエラルキーを持った子要素も対象とする場合は第二引数にtrueを指定する
+            //var objs = ray.intersectObjects(scene.children, true);
+        };
+        this.onMouseUp = function (e) {
+            _this.raycastedObjs = [];
+            _this.isMouseDown = false;
+        };
+        this.animate = function () {
+            requestAnimationFrame(_this.animate);
+            _this.render();
+            // this.stats.update();
+        };
+        this.scene01 = scnene01;
+        this.createScene();
+        this.animate();
+        console.log("scene created!");
+    }
+    // ******************************************************
+    Mapper.prototype.createScene = function () {
+        var _this = this;
+        this.container = document.createElement('div');
+        document.body.appendChild(this.container);
+        var aspect = window.innerWidth / window.innerHeight;
+        this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.PCFShadowMap;
+        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 1, 10000);
+        this.camera.position.z = 1000;
+        this.scene = new THREE.Scene();
+        this.scene.add(new THREE.AmbientLight(0xffffff));
+        var textureLoader = new THREE.TextureLoader();
+        var background = textureLoader.load("/models/pal/texture/image_0.png");
+        this.rendertarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+            minFilter: THREE.LinearFilter,
+            magFilter: THREE.NearestFilter,
+            format: THREE.RGBAFormat
+        });
+        this.rendertarget.texture.wrapS = THREE.ClampToEdgeWrapping;
+        this.rendertarget.texture.wrapT = THREE.ClampToEdgeWrapping;
+        this.rendertarget.texture.minFilter = THREE.LinearFilter;
+        this.screenGeo = new THREE.PlaneGeometry(1000 * aspect, 1000, 4, 4);
+        this.screenMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: this.rendertarget.texture });
+        var screen = new THREE.Mesh(this.screenGeo, this.screenMat);
+        // screen.material.wireframe = true;
+        screen.position.set(0, 0, this.planePosZ);
+        this.scene.add(screen);
+        this.maskGeo = new THREE.PlaneGeometry(0.1, 0.15);
+        this.maskMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 1.0 });
+        this.mask = new THREE.Mesh(this.maskGeo, this.maskMat);
+        this.mask.position.set(0, 0, -0.79);
+        this.mask.name = "mask";
+        this.scene.add(this.mask);
+        var geometry = new THREE.BoxGeometry(15, 15, 15);
+        for (var i = 0; i < this.screenGeo.vertices.length; i++) {
+            var object = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 1.0 }));
+            object.position.x = this.screenGeo.vertices[i].x;
+            object.position.y = this.screenGeo.vertices[i].y;
+            object.position.z = -0.79;
+            // object.rotation.x = Math.random() * 2 * Math.PI;
+            // object.rotation.y = Math.random() * 2 * Math.PI;
+            // object.rotation.z = Math.random() * 2 * Math.PI;
+            // object.scale.x = Math.random() * 2 + 1;
+            // object.scale.y = Math.random() * 2 + 1;
+            // object.scale.z = Math.random() * 2 + 1;
+            object.rotation.setFromVector3(new THREE.Vector3(0, 0, 0));
+            object.castShadow = true;
+            object.receiveShadow = true;
+            object.frustumCulled = false;
+            object.name = i.toString();
+            this.scene.add(object);
+            this.dragableObjs.push(object);
+        }
+        this.dragableObjs.push(this.mask);
+        this.raycaster = new THREE.Raycaster();
+        this.container.appendChild(this.renderer.domElement);
+        document.addEventListener('keydown', this.onKeyDown, false);
+        window.addEventListener('resize', this.onWindowResize, false);
+        document.addEventListener("mousemove", this.onMouseMove, true);
+        // window.addEventListener( 'mousemove', , false );
+        this.controls = new THREE.TrackballControls(this.camera);
+        this.controls.rotateSpeed = 1.0;
+        this.controls.zoomSpeed = 1.2;
+        this.controls.panSpeed = 0.8;
+        this.controls.noZoom = false;
+        this.controls.noPan = false;
+        this.controls.staticMoving = true;
+        this.controls.dynamicDampingFactor = 0.3;
+        var dragControls = new THREE.DragControls(this.dragableObjs, this.camera, this.renderer.domElement);
+        dragControls.addEventListener('dragstart', function (event) { _this.controls.enabled = false; });
+        dragControls.addEventListener('dragend', function (event) { _this.controls.enabled = true; });
+    };
+    // ******************************************************
+    Mapper.prototype.click = function () {
+    };
+    // ******************************************************
+    Mapper.prototype.keyUp = function (e) {
+    };
+    // ******************************************************
+    Mapper.prototype.mouseMove = function (e) {
+    };
+    // ******************************************************
+    Mapper.prototype.keyDown = function (e) {
+    };
+    // ******************************************************
+    Mapper.prototype.render = function () {
+        // this.screenMat.map = this.rendertarget.texture;
+        this.scene01.update();
+        this.controls.update();
+        if (this.scene01.isUpdate) {
+            this.renderer.render(this.scene01.scene, this.scene01.camera, this.rendertarget);
+        }
+        this.renderer.render(this.scene, this.camera);
+    };
+    return Mapper;
+}());
+/* harmony default export */ __webpack_exports__["a"] = (Mapper);
+
+
+/***/ }),
+/* 2 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+// *********** ひとつめのシーン *********** //
+var Scene02 = (function () {
+    // ******************************************************
+    function Scene02(renderer, gui, vthree) {
+        var _this = this;
+        this.uniforms = [];
+        this.materials = [];
+        this.TEXTURE_WIDTH = 320;
+        this.TEXTURE_HEIGHT = 320;
+        this.scaleZ = 1.0;
+        this.isScaleZ = false;
+        this.speedScaleZ = 0.0001;
+        this.isMoveToFront_Pal = false;
+        this.translateZ_pal = 0;
+        this.glitchDist = 0.01;
+        this.time = 0;
+        this._threshold = -999.0;
+        this.animationNum = 0.0;
+        this.isShaderReplace = false;
+        this.moveFlontSpeed = 3.0;
+        this.isWireGlitch = false;
+        this.isEnd = false;
+        this.isUpdate = true;
+        this.replaceShader_WireWave = function (object, isTransparent, isWire) {
+            if (!_this.isShaderReplace) {
+                console.log(object);
+                var materials = object.material.materials;
+                _this.materials = materials;
+                console.log(materials);
+                for (var i = 0; i < materials.length; i++) {
+                    //let img = materials[i].map.image.src;//.attributes.currentSrc;
+                    console.log(materials[i]);
+                    console.log(materials[i].map);
+                    console.log(materials[i].map.image);
+                    var img = materials[i].map.image.currentSrc;
+                    var _uniforms = {
+                        time: { value: 1.0 },
+                        texture: { value: new THREE.TextureLoader().load(img) },
+                        transparent: { value: isTransparent },
+                        threshold: { value: 0 },
+                        texturePosition: { value: null },
+                        isDisplay: { value: true },
+                        glitchVec: { value: new THREE.Vector3(1, 0, 0) },
+                        glitchDist: { value: 0.0 },
+                        animationNum: { value: 0 }
+                    };
+                    _this.uniforms.push(_uniforms);
+                    // materials[i].wireframe = true;
+                    materials[i] = new THREE.ShaderMaterial({
+                        uniforms: _uniforms,
+                        vertexShader: document.getElementById("vertex_pal").textContent,
+                        fragmentShader: document.getElementById("fragment_pal").textContent,
+                        wireframe: isWire,
+                        transparent: true,
+                        side: THREE.DoubleSide
+                        // drawBuffer:true
+                    });
+                }
+                return object;
+            }
+        };
+        this.reset = function () {
+            _this.isMoveToFront_Pal = false;
+            _this.isScaleZ = false;
+            _this.scaleZ = 1.0;
+            _this.speedScaleZ = 0.0001;
+            _this.isMoveToFront_Pal = false;
+            _this.translateZ_pal = 0;
+            _this.glitchDist = 0.01;
+            _this.time = 0;
+            _this._threshold = 999.0;
+            _this.animationNum = 0.0;
+            _this.moveFlontSpeed = 3.0;
+            _this.isWireGlitch = false;
+            _this.isEnd = false;
+            _this.scene.scale.set(1.3, 1, _this.scaleZ);
+            // this.scene.position.set(1.2,1,this.scaleZ);
+            for (var i = 0; i < _this.uniforms.length; i++) {
+                _this.uniforms[i].glitchDist.value = 0;
+                _this.materials[i].wireframe = false;
+                _this.uniforms[i].animationNum.value = 0;
+            }
+            // for(let i = 0; i < this.pal.length; i++)
+            // {
+            _this.pal.position.set(-1, 0.5, 0);
+            r;
+            // }
+            _this.pal.translateY(0);
+            _this.pal.translateZ(0);
+            _this.scene.rotation.setFromVector3(new THREE.Vector3(0, 0, 0));
+        };
+        this.resetandgo = function () {
+            _this.reset();
+            _this.isMoveToFront_Pal = true;
+        };
+        this.renderer = renderer;
+        this.vthree = vthree;
+        this.createScene();
+        this.gui = gui;
+        console.log("scene created!");
+    }
+    // ******************************************************
+    Scene02.prototype.createScene = function () {
+        var _this = this;
+        this.scene = new THREE.Scene();
+        var ambient = new THREE.AmbientLight(0xffffff);
+        this.scene.add(ambient);
+        var dLight = new THREE.DirectionalLight(0xffffff, 0.2);
+        dLight.position.set(0, 1, 0).normalize();
+        this.scene.add(dLight);
+        var directionalLight = new THREE.DirectionalLight(0xffeedd);
+        directionalLight.position.set(0, 0, 1).normalize();
+        this.scene.add(directionalLight);
+        var onProgress = function (xhr) {
+            if (xhr.lengthComputable) {
+                var percentComplete = xhr.loaded / xhr.total * 100;
+                if (Math.round(percentComplete, 2) == 100) {
+                    _this.isUpdate = true;
+                    // this.replaceShader_WireWave(this.pal,0,false);
+                }
+                console.log(Math.round(percentComplete, 2) + '% downloaded');
+            }
+        };
+        var onError = function (xhr) {
+        };
+        var loader = new THREE.JSONLoader();
+        loader.load('models/json/pal_ura/pal_ura.json', function (geometry, materials) {
+            var faceMaterial = new THREE.MultiMaterial(materials);
+            var mesh = new THREE.Mesh(geometry, faceMaterial);
+            _this.pal = mesh;
+            mesh.position.set(-1, 0.5, 0);
+            // mesh.scale.set(1.5,1,1);
+            console.log("pal_ura");
+            console.log(mesh);
+            _this.scene.add(mesh);
+        }, onProgress, onError);
+        // カメラを作成
+        this.camera = new THREE.PerspectiveCamera(105, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // カメラ位置を設定
+        this.scene.scale.set(1.3, 1, 1);
+        this.camera.position.y = 3;
+        this.camera.position.z = 30;
+        this.initComputeRenderer();
+    };
+    Scene02.prototype.initComputeRenderer = function () {
+        this.gpuCompute = new GPUComputationRenderer(this.TEXTURE_WIDTH, this.TEXTURE_HEIGHT, this.renderer);
+        console.log(this.gpuCompute);
+        var dtPosition = this.gpuCompute.createTexture();
+        this.fillTexture(dtPosition);
+        this.positionVariable = this.gpuCompute.addVariable("texturePosition", document.getElementById('computeShaderPosition').textContent, dtPosition);
+        this.gpuCompute.setVariableDependencies(this.positionVariable, [this.positionVariable]);
+        var error = this.gpuCompute.init();
+        if (error !== null) {
+            console.error(error);
+        }
+    };
+    Scene02.prototype.fillTexture = function (texturePosition) {
+        var posArray = texturePosition.image.data;
+        for (var k = 0, k1 = posArray.length; k < k1; k += 4) {
+            var x, y, z;
+            x = 0;
+            y = 0;
+            z = 0;
+            posArray[k + 0] = x;
+            posArray[k + 1] = y;
+            posArray[k + 2] = z;
+            posArray[k + 3] = 0;
+        }
+    };
+    // ******************************************************
+    Scene02.prototype.keyUp = function (e) {
+    };
+    Scene02.prototype.click = function () {
+        this.replaceShader_WireWave(this.pal, 0, false);
+        this.isShaderReplace = true;
+    };
+    // ******************************************************
+    Scene02.prototype.keyDown = function (e) {
+        if (e.key == "Space") {
+            this.replaceShader_WireWave(this.pal, 0, false);
+            this.isShaderReplace = true;
+        }
+        if (e.key == "p") {
+            this.image_uniform.display.value = !this.image_uniform.display.value;
+        }
+        if (e.key == "m") {
+            this.isMoveToFront_Pal = !this.isMoveToFront_Pal;
+        }
+        if (e.key == "d") {
+            for (var i = 0; i < this.uniforms.length; i++) {
+                this.uniforms[i].isDisplay.value = !this.uniforms[i].isDisplay.value;
+            }
+        }
+        if (e.key == "t") {
+            this._threshold = -40.0;
+        }
+        if (e.key == "w") {
+            this.isWireGlitch = !this.isWireGlitch;
+        }
+        if (e.key == "z") {
+            this.isScaleZ = !this.isScaleZ;
+        }
+        if (e.key == "a") {
+            for (var i = 0; i < this.uniforms.length; i++) {
+                this.uniforms[i].animationNum.value = 1;
+            }
+        }
+        if (e.key == "e") {
+            this.isEnd = !this.isEnd;
+            // console.log(this.isEnd);
+        }
+        if (e.key == "r") {
+            this.reset();
+        }
+    };
+    // ******************************************************
+    Scene02.prototype.mouseMove = function (e) {
+    };
+    // ******************************************************
+    Scene02.prototype.onMouseDown = function (e) {
+    };
+    // ******************************************************
+    Scene02.prototype.update = function (time) {
+        if (this.isUpdate) {
+            if (this.vthree.oscValue[1] == 0) {
+                this.reset();
+            }
+            if (this.vthree.oscValue[1] == 1) {
+                this.reset();
+                // this.replaceShader_WireWave(this.pal[0],0,false);
+            }
+            if (this.vthree.oscValue[1] == 65) {
+                this.isMoveToFront_Pal = true;
+            }
+            if (this.vthree.oscValue[1] == 66) {
+                // this.isMoveToFront_Pal = true;
+                this.isScaleZ = true;
+            }
+            if (this.vthree.oscValue[1] == 74) {
+                this.scaleZ = 0;
+                this.isScaleZ = false;
+                this.scene.scale.set(1.3, 1, 1);
+                // this.isMoveToFront_Pal = false;
+                // this.translateZ_pal = 0;
+                // this.pal[0
+                // this.isWireGlitch = true;
+            }
+            if (this.vthree.oscValue[1] == 75) {
+                this.isWireGlitch = true;
+                // this.glitchDist = 0.01;
+            }
+            if (this.isWireGlitch) {
+                this.isMoveToFront_Pal = false;
+                for (var i = 0; i < this.materials.length; i++) {
+                    this.materials[i].wireframe = !this.materials[i].wireframe;
+                }
+                if (Math.random() < 0.9) {
+                    // this
+                    this.glitchDist *= 1.1;
+                    for (var i = 0; i < this.uniforms.length; i++) {
+                        // if(this.glitchDist >= Math.PI/2)
+                        // {
+                        //     this.glitchDist = 0.0;
+                        // }
+                        this.uniforms[i].glitchDist.value = this.glitchDist * 20.0;
+                    }
+                }
+            }
+            if (this.vthree.oscValue[1] == 76) {
+                this.isEnd = true;
+                this.isMoveToFront_Pal = true;
+            }
+            if (this.isEnd) {
+                this.scene.rotation.setFromVector3(new THREE.Vector3(4.75, 0, 0));
+                this.glitchDist = 0.0;
+                for (var i = 0; i < this.uniforms.length; i++) {
+                    this.uniforms[i].animationNum.value = 1;
+                    this.uniforms[i].glitchDist.value = Math.abs(Math.sin(this.glitchDist)) * 20.0;
+                    this.materials[i].wireframe = false;
+                }
+                this.isWireGlitch = false;
+                // this.isEnd = true;
+                this.isMoveToFront_Pal = true;
+            }
+            if (this.isScaleZ) {
+                this.speedScaleZ *= 1.1;
+                this.scaleZ += this.speedScaleZ;
+                if (this.scaleZ <= 25.0) {
+                    this.scene.scale.set(1.2, 1, this.scaleZ);
+                }
+            }
+            this.renderer.setClearColor(0x000000);
+            this.time++;
+            this.gpuCompute.compute();
+            var timerStep = 0.004;
+            for (var i = 0; i < this.uniforms.length; i++) {
+                //console.log(this.uniforms[i]);
+                this.uniforms[i].texturePosition.value = this.gpuCompute.getCurrentRenderTarget(this.positionVariable).texture;
+                this.uniforms[i].time.value += timerStep;
+            }
+            if (this.isMoveToFront_Pal) {
+                console.log(this.translateZ_pal);
+                if (this.translateZ_pal < -12.8) {
+                    // this.reset();
+                    // this.isMoveToFront_Pal= true;
+                    this.resetandgo();
+                }
+                if (this.translateZ_pal < -9.7 && this.translateZ_pal > -9.8) {
+                    var p = Math.random();
+                    if (p < 0.02) {
+                        if (Math.random() < 0.4) {
+                            this.isScaleZ = true;
+                            setTimeout(this.resetandgo, 2500);
+                        }
+                        else {
+                            this.isWireGlitch = true;
+                            setTimeout(this.resetandgo, 5000);
+                        }
+                        this.isMoveToFront_Pal = false;
+                    }
+                }
+                this.moveFlontSpeed += (0.001 - this.moveFlontSpeed) * 0.3;
+                this.translateZ_pal -= this.moveFlontSpeed;
+                if (this.isEnd) {
+                    this.pal.translateZ(0);
+                    this.pal.translateY(this.translateZ_pal * 0.001);
+                }
+                else {
+                    this.pal.translateY(0);
+                    this.pal.translateZ(-this.translateZ_pal * 0.001);
+                }
+            }
+            this.scene.rotation.setFromVector3(new THREE.Vector3(0, this.gui.parameters.scene_rotation_y, 0));
+        }
+    };
+    return Scene02;
+}());
+/* harmony default export */ __webpack_exports__["a"] = (Scene02);
+
+
+/***/ }),
+/* 3 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__OrbitControls_js__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__OrbitControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__OrbitControls_js__);
+// import "./stats.js";
+
+
+var VThree = (function () {
+    function VThree(startAlpha, transparent, target, config) {
+        var _this = this;
+        // 現在のシーンの番号
+        this.NUM = 0;
+        // シーンを格納する配列
+        this.scenes = [];
+        this.controls = [];
+        this.opacityStep = 0.1;
+        this.opacity = 1.0;
+        this.transparent = false;
+        this.key_sceneNext = "ArrowRight";
+        this.key_scenePrev = "ArrowLeft";
+        this.isOrbitControls = false;
+        this.debugMode = false;
+        this.cameras = [];
+        this.isUpdate = true;
+        this.debugCounter = 0;
+        this.oscValue = [];
+        this.onMouseDown = function (e) {
+            _this.scenes[_this.NUM].onMouseDown(e);
+        };
+        // ウィンドウの幅が変わったときの処理
+        this.onWindowResize = function () {
+            var windowHalfX = window.innerWidth / 2;
+            var windowHalfY = window.innerHeight / 2;
+            _this.scenes[_this.NUM].camera.aspect = window.innerWidth / window.innerHeight;
+            _this.scenes[_this.NUM].camera.updateProjectionMatrix();
+            _this.renderer.setSize(window.innerWidth, window.innerHeight);
+            console.log("resize");
+        };
+        // 現在のシーン番号が、不適切な値にならないようにチェック
+        this.checkNum = function () {
+            if (_this.NUM < 0) {
+                _this.NUM = _this.scenes.length - 1;
+            }
+            if (_this.NUM >= _this.scenes.length) {
+                _this.NUM = 0;
+            }
+        };
+        this.onClick = function () {
+            _this.scenes[_this.NUM].click();
+        };
+        // ←→キーでシーン番号を足し引き
+        this.onKeyUp = function (e) {
+            _this.scenes[_this.NUM].keyUp(e);
+        };
+        this.onMouseMove = function (e) {
+            try {
+                _this.scenes[_this.NUM].mouseMove(e);
+            }
+            finally {
+            }
+        };
+        this.onKeyDown = function (e) {
+            console.log(e);
+            // console.log(this.NUM);
+            try {
+                if (e.key == _this.key_sceneNext) {
+                    _this.NUM++;
+                    _this.checkNum();
+                }
+                if (e.key == _this.key_scenePrev) {
+                    _this.NUM--;
+                    _this.checkNum();
+                }
+                if (e.key == "ArrowUp") {
+                    _this.opacity += _this.opacityStep;
+                    if (_this.opacity > 1.0) {
+                        _this.opacity = 1.0;
+                    }
+                    _this.updateCanvasAlpha();
+                }
+                if (e.key == "ArrowDown") {
+                    _this.opacity -= _this.opacityStep;
+                    if (_this.opacity < 0.0) {
+                        _this.opacity = 0.0;
+                    }
+                    _this.updateCanvasAlpha();
+                }
+                if (e.key == "d") {
+                    //this.debugCounter++;
+                }
+                if (e.code == "Space") {
+                    // this.StartStop();
+                    if (__WEBPACK_IMPORTED_MODULE_0_jquery__(".blackScreen").hasClass("start")) {
+                        __WEBPACK_IMPORTED_MODULE_0_jquery__(".blackScreen").removeClass("start");
+                        __WEBPACK_IMPORTED_MODULE_0_jquery__(".blackScreen").addClass("end");
+                    }
+                    else {
+                        __WEBPACK_IMPORTED_MODULE_0_jquery__(".blackScreen").addClass("start");
+                        __WEBPACK_IMPORTED_MODULE_0_jquery__(".blackScreen").removeClass("end");
+                    }
+                }
+                if (_this.debugCounter >= 5) {
+                    _this.changeDebug();
+                    _this.debugCounter = 0;
+                }
+                console.log(_this.NUM);
+                _this.scenes[_this.NUM].keyDown(e);
+                for (var i = 0; i < _this.controls.length; i++) {
+                    if (i == _this.NUM) {
+                        _this.controls[i].enabled = true;
+                    }
+                    else {
+                        _this.controls[i].enabled = false;
+                    }
+                }
+            }
+            finally {
+            }
+        };
+        console.log(config);
+        this.debugMode = (config === undefined ? false : config.debugMode);
+        this.opacity = startAlpha;
+        this.transparent = transparent;
+        this.rendertarget = target;
+        // 初期化処理後、イベント登録
+        this.init();
+        window.addEventListener('resize', this.onWindowResize, false);
+        window.addEventListener('click', this.onClick, false);
+        window.addEventListener('onmousedown', this.onMouseDown, false);
+        document.addEventListener("keydown", this.onKeyDown, true);
+        document.addEventListener("keyup", this.onKeyUp, true);
+        document.addEventListener("mousemove", this.onMouseMove, true);
+    }
+    VThree.prototype.initOrbitContorols = function () {
+    };
+    VThree.prototype.reset = function () {
+        for (var i = 0; i < this.scenes.length; i++) {
+            this.scenes[i].reset();
+        }
+    };
+    VThree.prototype.init = function () {
+        // Rendererを作る
+        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        this.renderer.setPixelRatio(window.devicePixelRatio);
+        this.renderer.setSize(window.innerWidth, window.innerHeight);
+        this.renderer.sortObjects = false;
+        this.renderer.shadowMap.enabled = true;
+        this.renderer.shadowMap.type = THREE.BasicShadowMap;
+        this.renderer.domElement.id = "main";
+        this.renderer.gammaInput = true;
+        this.renderer.gammaOutput = true;
+        document.body.appendChild(this.renderer.domElement);
+        this.updateCanvasAlpha();
+        // this.stats = new Stats();
+        // document.body.appendChild(this.stats.domElement);
+        this.debug();
+    };
+    // 管理したいシーンを格納する関数
+    VThree.prototype.addScene = function (scene) {
+        this.scenes.push(scene);
+        this.cameras.push(scene.camera);
+        // let controls = new THREE.OrbitControls( scene.camera, this.renderer.domElement );
+        // controls.enableKeys = false;
+        // this.controls.push(controls);
+    };
+    VThree.prototype.nextScene = function () {
+        this.NUM++;
+        this.checkNum();
+        // this.checkGuiOpen();
+    };
+    VThree.prototype.StartStop = function () {
+        this.isUpdate = !this.isUpdate;
+        if (this.isUpdate) {
+            requestAnimationFrame(this.draw.bind(this));
+        }
+    };
+    VThree.prototype.checkGuiOpen = function () {
+        for (var i = 0; i < this.scenes.length; i++) {
+            if (this.NUM == i) {
+                this.scenes[i].guiOpen();
+            }
+            else {
+                this.scenes[i].guiClose();
+            }
+        }
+    };
+    VThree.prototype.updateCanvasAlpha = function () {
+        if (this.transparent) {
+            this.renderer.domElement.style.opacity = this.opacity;
+        }
+    };
+    VThree.prototype.nowScene = function () {
+        return this.scenes[this.NUM];
+    };
+    VThree.prototype.changeDebug = function () {
+        this.debugMode = !this.debugMode;
+        this.debug();
+    };
+    VThree.prototype.debug = function () {
+        if (this.debugMode) {
+            __WEBPACK_IMPORTED_MODULE_0_jquery__('.dg').css('display', 'block');
+        }
+        else {
+            __WEBPACK_IMPORTED_MODULE_0_jquery__('.dg').css('display', 'none');
+        }
+    };
+    VThree.prototype.start = function () {
+    };
+    // 最終的な描写処理と、アニメーション関数をワンフレームごとに実行
+    VThree.prototype.draw = function (time) {
+        // this.stats.update(time);
+        this.scenes[this.NUM].update(time, this.isUpdate);
+        this.renderer.render(this.scenes[this.NUM].scene, this.scenes[this.NUM].camera, this.rendertarget);
+        if (this.isUpdate) {
+            requestAnimationFrame(this.draw.bind(this));
+        }
+        this.oscValue = [];
+    };
+    return VThree;
+}());
+/* harmony default export */ __webpack_exports__["a"] = (VThree);
+
+
+/***/ }),
+/* 4 */
 /***/ (function(module, exports) {
 
 /*
@@ -102,15 +914,22 @@ THREE.DragControls = function ( _objects, _camera, _domElement ) {
 
 		_domElement.addEventListener( 'mousemove', onDocumentMouseMove, false );
 		_domElement.addEventListener( 'mousedown', onDocumentMouseDown, false );
-		_domElement.addEventListener( 'mouseup', onDocumentMouseUp, false );
-
+		_domElement.addEventListener( 'mouseup', onDocumentMouseCancel, false );
+		_domElement.addEventListener( 'mouseleave', onDocumentMouseCancel, false );
+		_domElement.addEventListener( 'touchmove', onDocumentTouchMove, false );
+		_domElement.addEventListener( 'touchstart', onDocumentTouchStart, false );
+		_domElement.addEventListener( 'touchend', onDocumentTouchEnd, false );
 	}
 
 	function deactivate() {
 
 		_domElement.removeEventListener( 'mousemove', onDocumentMouseMove, false );
 		_domElement.removeEventListener( 'mousedown', onDocumentMouseDown, false );
-		_domElement.removeEventListener( 'mouseup', onDocumentMouseUp, false );
+		_domElement.removeEventListener( 'mouseup', onDocumentMouseCancel, false );
+		_domElement.removeEventListener( 'mouseleave', onDocumentMouseCancel, false );
+		_domElement.removeEventListener( 'touchmove', onDocumentTouchMove, false );
+		_domElement.removeEventListener( 'touchstart', onDocumentTouchStart, false );
+		_domElement.removeEventListener( 'touchend', onDocumentTouchEnd, false );
 
 	}
 
@@ -124,8 +943,10 @@ THREE.DragControls = function ( _objects, _camera, _domElement ) {
 
 		event.preventDefault();
 
-		_mouse.x = ( event.clientX / _domElement.width ) * 2 - 1;
-		_mouse.y = - ( event.clientY / _domElement.height ) * 2 + 1;
+		var rect = _domElement.getBoundingClientRect();
+
+		_mouse.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
+		_mouse.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
 
 		_raycaster.setFromCamera( _mouse, _camera );
 
@@ -204,7 +1025,86 @@ THREE.DragControls = function ( _objects, _camera, _domElement ) {
 
 	}
 
-	function onDocumentMouseUp( event ) {
+	function onDocumentMouseCancel( event ) {
+
+		event.preventDefault();
+
+		if ( _selected ) {
+
+			scope.dispatchEvent( { type: 'dragend', object: _selected } );
+
+			_selected = null;
+
+		}
+
+		_domElement.style.cursor = 'auto';
+
+	}
+
+	function onDocumentTouchMove( event ) {
+
+		event.preventDefault();
+		event = event.changedTouches[ 0 ];
+
+		var rect = _domElement.getBoundingClientRect();
+
+		_mouse.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
+		_mouse.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
+
+		_raycaster.setFromCamera( _mouse, _camera );
+
+		if ( _selected && scope.enabled ) {
+
+			if ( _raycaster.ray.intersectPlane( _plane, _intersection ) ) {
+
+				_selected.position.copy( _intersection.sub( _offset ) );
+
+			}
+
+			scope.dispatchEvent( { type: 'drag', object: _selected } );
+
+			return;
+
+		}
+
+	}
+
+	function onDocumentTouchStart( event ) {
+
+		event.preventDefault();
+		event = event.changedTouches[ 0 ];
+
+		var rect = _domElement.getBoundingClientRect();
+
+		_mouse.x = ( ( event.clientX - rect.left ) / rect.width ) * 2 - 1;
+		_mouse.y = - ( ( event.clientY - rect.top ) / rect.height ) * 2 + 1;
+
+		_raycaster.setFromCamera( _mouse, _camera );
+
+		var intersects = _raycaster.intersectObjects( _objects );
+
+		if ( intersects.length > 0 ) {
+
+			_selected = intersects[ 0 ].object;
+
+			_plane.setFromNormalAndCoplanarPoint( _camera.getWorldDirection( _plane.normal ), _selected.position );
+
+			if ( _raycaster.ray.intersectPlane( _plane, _intersection ) ) {
+
+				_offset.copy( _intersection ).sub( _selected.position );
+
+			}
+
+			_domElement.style.cursor = 'move';
+
+			scope.dispatchEvent( { type: 'dragstart', object: _selected } );
+
+		}
+
+
+	}
+
+	function onDocumentTouchEnd( event ) {
 
 		event.preventDefault();
 
@@ -266,7 +1166,7 @@ THREE.DragControls.prototype.constructor = THREE.DragControls;
 
 
 /***/ }),
-/* 1 */
+/* 5 */
 /***/ (function(module, exports) {
 
 /**
@@ -850,6 +1750,8 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 	function contextmenu( event ) {
 
+		if ( _this.enabled === false ) return;
+
 		event.preventDefault();
 
 	}
@@ -892,908 +1794,6 @@ THREE.TrackballControls = function ( object, domElement ) {
 
 THREE.TrackballControls.prototype = Object.create( THREE.EventDispatcher.prototype );
 THREE.TrackballControls.prototype.constructor = THREE.TrackballControls;
-
-
-/***/ }),
-/* 2 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__GUIParameters__ = __webpack_require__(12);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_dat_gui__ = __webpack_require__(7);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_dat_gui___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_dat_gui__);
-
-
-var GUI = (function () {
-    // public camera:any;
-    function GUI() {
-        // var fizzyText = new FizzyText();
-        this.parameters = new __WEBPACK_IMPORTED_MODULE_0__GUIParameters__["a" /* default */];
-        console.log(this.parameters);
-        // this.gui = new dat.GUI({ load: data, width:400});
-        this.gui = new __WEBPACK_IMPORTED_MODULE_1_dat_gui__["GUI"](this.parameters);
-        // this.gui.remember();
-        this.gui.remember(this.parameters);
-        this.rendering = this.gui.addFolder('animation');
-        this.scene03 = this.gui.addFolder("scene03");
-        this.particle = this.gui.addFolder("particle");
-        this.image = this.gui.addFolder("image");
-        this.parking = this.gui.addFolder("parking");
-        this.pal = this.gui.addFolder("pal");
-        // this.camera = this.gui.addFolder('camera');
-        this.init();
-    }
-    GUI.prototype.init = function () {
-        this.rendering.add(this.parameters, 'threshold', -30.0, 30.0);
-        this.scene03.add(this.parameters, "drawArms01", true);
-        this.scene03.add(this.parameters, "drawArms02", true);
-        this.scene03.add(this.parameters, "drawArms03", true);
-        this.particle.add(this.parameters, "particleStartX", -3.0, 3.0);
-        this.particle.add(this.parameters, "particleStartY", -5.0, 5.0);
-        this.particle.add(this.parameters, "particleStartZ", -1.0, 1.0);
-        this.image.add(this.parameters, "image_speed", 0.0, 0.1);
-        this.image.add(this.parameters, "image_noiseScale", 0.0, 1.0);
-        this.image.add(this.parameters, "image_noiseSeed", 0.0, 3.0);
-        this.image.add(this.parameters, "image_speed_scale__vertex", 0.0, 0.1);
-        this.image.add(this.parameters, "image_noiseScale_vertex", 0.0, 10.0);
-        this.image.add(this.parameters, "image_noiseSeed_vertex", 0.0, 15.0);
-        this.image.add(this.parameters, "image_distance_threshold", 0.0, 2.0);
-        this.image.add(this.parameters, "image_positionX", -30.0, 30.0);
-        this.image.add(this.parameters, "image_positionY", -30.0, 30.0);
-        this.image.add(this.parameters, "image_positionZ", -32.0, 32.0);
-        this.parking.add(this.parameters, "parking_vGlitchArea", 0.0, 10.0);
-        this.pal.add(this.parameters, "pal_position_x", -5.0, 5.0);
-        this.pal.add(this.parameters, "scene_rotation_y", -1.0, 1.0);
-    };
-    return GUI;
-}());
-/* harmony default export */ __webpack_exports__["a"] = (GUI);
-;
-
-
-/***/ }),
-/* 3 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-var Stats = __webpack_require__(11);
-var Mapper = (function () {
-    // ******************************************************
-    function Mapper(scnene01) {
-        var _this = this;
-        this.mouse = new THREE.Vector2();
-        this.screenWidth = window.innerWidth;
-        this.screenHeight = window.innerHeight;
-        this.dragableObjs = [];
-        this.isMouseDown = false;
-        this.planePosZ = -0.8;
-        this.raycastedObjs = [];
-        this.onWindowResize = function () {
-            var aspect = window.innerWidth / window.innerHeight;
-            // this.camera.left   = - this.frustumSize * aspect / 2;
-            // this.camera.right  =   this.frustumSize * aspect / 2;
-            // this.camera.top    =   this.frustumSize / 2;
-            // this.camera.bottom = - this.frustumSize / 2;
-            // this.camera.updateProjectionMatrix();
-            _this.renderer.setSize(window.innerWidth, window.innerHeight);
-        };
-        this.onKeyDown = function (e) {
-            if (e.key == "M") {
-                for (var i = 0; i < _this.dragableObjs.length; i++) {
-                    if (_this.dragableObjs[i].name != "mask") {
-                        _this.dragableObjs[i].material.opacity = Math.abs(1.0 - _this.dragableObjs[i].material.opacity);
-                    }
-                }
-            }
-        };
-        this.onMouseMove = function (e) {
-            var rect = e.target.getBoundingClientRect();
-            // スクリーン上のマウス位置を取得する
-            var mouseX = e.clientX - rect.left;
-            var mouseY = e.clientY - rect.top;
-            // 取得したスクリーン座標を-1〜1に正規化する（WebGLは-1〜1で座標が表現される）
-            mouseX = (mouseX / window.innerWidth) * 2 - 1;
-            mouseY = -(mouseY / window.innerHeight) * 2 + 1;
-            // マウスの位置ベクトル
-            var pos = new THREE.Vector3(mouseX, mouseY, 0.1);
-            var _pos = new THREE.Vector3(mouseX, mouseY, _this.planePosZ);
-            pos.unproject(_this.camera);
-            _pos.unproject(_this.camera);
-            var ray = new THREE.Raycaster(_this.camera.position, pos.sub(_this.camera.position).normalize());
-            // var _ray = new THREE.Raycaster(this.camera.position, _pos.sub(this.camera.position).normalize());
-            // 交差判定
-            // 引数は取得対象となるMeshの配列を渡す。以下はシーン内のすべてのオブジェクトを対象に。
-            // var objs = ray.intersectObjects(this.dragableObjs, true);
-            if (_this.raycastedObjs.length > 0) {
-                console.log(_this.isMouseDown);
-                for (var i = 0; i < _this.raycastedObjs.length; i++) {
-                    _this.raycastedObjs[i].object.position.x = pos.x * 1.18;
-                    _this.raycastedObjs[i].object.position.y = pos.y * 1.2;
-                    if (Number(_this.raycastedObjs[0].object.name)) {
-                        _this.screenGeo.vertices[Number(_this.raycastedObjs[i].object.name)].x = pos.x * 1.18;
-                        _this.screenGeo.vertices[Number(_this.raycastedObjs[i].object.name)].y = pos.y * 1.2;
-                        _this.screenGeo.verticesNeedUpdate = true;
-                    }
-                }
-            }
-        };
-        // ******************************************************
-        this.onMouseDown = function (e) {
-            var rect = e.target.getBoundingClientRect();
-            // スクリーン上のマウス位置を取得する
-            var mouseX = e.clientX - rect.left;
-            var mouseY = e.clientY - rect.top;
-            // 取得したスクリーン座標を-1〜1に正規化する（WebGLは-1〜1で座標が表現される）
-            mouseX = (mouseX / window.innerWidth) * 2 - 1;
-            mouseY = -(mouseY / window.innerHeight) * 2 + 1;
-            // マウスの位置ベクトル
-            var pos = new THREE.Vector3(mouseX, mouseY, 1);
-            var _pos = new THREE.Vector3(mouseX, mouseY, _this.planePosZ);
-            // pos はスクリーン座標系なので、オブジェクトの座標系に変換
-            // オブジェクト座標系は今表示しているカメラからの視点なので、第二引数にカメラオブジェクトを渡す
-            // new THREE.Projector.unprojectVector(pos, camera); ↓最新版では以下の方法で得る
-            pos.unproject(_this.camera);
-            _pos.unproject(_this.camera);
-            // 始点、向きベクトルを渡してレイを作成
-            var ray = new THREE.Raycaster(_this.camera.position, pos.sub(_this.camera.position).normalize());
-            // 交差判定
-            // 引数は取得対象となるMeshの配列を渡す。以下はシーン内のすべてのオブジェクトを対象に。
-            _this.raycastedObjs = ray.intersectObjects(_this.dragableObjs);
-            //ヒエラルキーを持った子要素も対象とする場合は第二引数にtrueを指定する
-            //var objs = ray.intersectObjects(scene.children, true);
-        };
-        this.onMouseUp = function (e) {
-            _this.raycastedObjs = [];
-            _this.isMouseDown = false;
-        };
-        this.animate = function () {
-            requestAnimationFrame(_this.animate);
-            _this.render();
-            // this.stats.update();
-        };
-        this.scene01 = scnene01;
-        this.createScene();
-        this.animate();
-        console.log("scene created!");
-    }
-    // ******************************************************
-    Mapper.prototype.createScene = function () {
-        this.container = document.createElement('div');
-        document.body.appendChild(this.container);
-        var aspect = window.innerWidth / window.innerHeight;
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.PCFShadowMap;
-        var frustumSize = 1000;
-        this.camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.01, 10000);
-        this.camera.position.set(0, 0, 0.001);
-        this.camera.position.set(0, 0, 0);
-        this.scene = new THREE.Scene();
-        // this.controls = new THREE.TrackballControls(this.camera );
-        // this.controls.rotateSpeed = 1.0;
-        // this.controls.zoomSpeed = 1.2;
-        // this.controls.panSpeed = 0.8;
-        // this.controls.noZoom = false;
-        // this.controls.noPan = false;
-        // this.controls.staticMoving = true;
-        // this.controls.dynamicDampingFactor = 0.3;
-        this.scene.add(new THREE.AmbientLight(0xffffff));
-        var textureLoader = new THREE.TextureLoader();
-        var background = textureLoader.load("/models/pal/texture/image_0.png");
-        this.rendertarget = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
-            minFilter: THREE.LinearFilter,
-            magFilter: THREE.NearestFilter,
-            format: THREE.RGBAFormat
-        });
-        this.screenGeo = new THREE.PlaneGeometry(1 * aspect, 1, 4, 4);
-        this.screenMat = new THREE.MeshBasicMaterial({ side: THREE.DoubleSide, map: this.rendertarget.texture });
-        var screen = new THREE.Mesh(this.screenGeo, this.screenMat);
-        // screen.material.wireframe = true;
-        screen.position.set(0, 0, this.planePosZ);
-        this.scene.add(screen);
-        this.maskGeo = new THREE.PlaneGeometry(0.1, 0.15);
-        this.maskMat = new THREE.MeshBasicMaterial({ color: 0x000000, transparent: true, opacity: 1.0 });
-        this.mask = new THREE.Mesh(this.maskGeo, this.maskMat);
-        this.mask.position.set(0, 0, -0.79);
-        this.mask.name = "mask";
-        this.scene.add(this.mask);
-        var geometry = new THREE.PlaneGeometry(0.04, 0.04);
-        for (var i = 0; i < this.screenGeo.vertices.length; i++) {
-            var object = new THREE.Mesh(geometry, new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.DoubleSide, transparent: true, opacity: 1.0 }));
-            object.position.x = this.screenGeo.vertices[i].x;
-            object.position.y = this.screenGeo.vertices[i].y;
-            object.position.z = -0.79;
-            // object.rotation.x = Math.random() * 2 * Math.PI;
-            // object.rotation.y = Math.random() * 2 * Math.PI;
-            // object.rotation.z = Math.random() * 2 * Math.PI;
-            // object.scale.x = Math.random() * 2 + 1;
-            // object.scale.y = Math.random() * 2 + 1;
-            // object.scale.z = Math.random() * 2 + 1;
-            object.rotation.setFromVector3(new THREE.Vector3(0, 0, 0));
-            object.castShadow = true;
-            object.receiveShadow = true;
-            object.frustumCulled = false;
-            object.name = i.toString();
-            this.scene.add(object);
-            this.dragableObjs.push(object);
-        }
-        this.dragableObjs.push(this.mask);
-        //
-        // var dragControls = new THREE.DragControls( this.dragableObjs, this.camera, this.renderer.domElement );
-        // dragControls.addEventListener( 'dragstart', ( event )=> { this.controls.enabled = false; } );
-        // dragControls.addEventListener( 'dragend', ( event )=> { this.controls.enabled = true; } );
-        this.raycaster = new THREE.Raycaster();
-        this.container.appendChild(this.renderer.domElement);
-        // this.stats = new Stats();
-        // this.container.appendChild( this.stats.domElement );
-        document.addEventListener('mousemove', this.onMouseMove, false);
-        document.addEventListener('mousedown', this.onMouseDown, false);
-        document.addEventListener('mouseup', this.onMouseUp, false);
-        document.addEventListener('keydown', this.onKeyDown, false);
-        window.addEventListener('resize', this.onWindowResize, false);
-    };
-    // ******************************************************
-    Mapper.prototype.click = function () {
-    };
-    // ******************************************************
-    Mapper.prototype.keyUp = function (e) {
-    };
-    // ******************************************************
-    Mapper.prototype.mouseMove = function (e) {
-    };
-    // ******************************************************
-    Mapper.prototype.keyDown = function (e) {
-    };
-    // ******************************************************
-    Mapper.prototype.render = function () {
-        // this.screenMat.map = this.rendertarget.texture;
-        this.scene01.update();
-        // this.controls.update();
-        this.renderer.render(this.scene01.scene, this.scene01.camera, this.rendertarget);
-        this.renderer.render(this.scene, this.camera);
-    };
-    return Mapper;
-}());
-/* harmony default export */ __webpack_exports__["a"] = (Mapper);
-
-
-/***/ }),
-/* 4 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-// *********** ひとつめのシーン *********** //
-var Scene01 = (function () {
-    // ******************************************************
-    function Scene01(renderer, gui, vthree) {
-        var _this = this;
-        this.uniforms = [];
-        this.materials = [];
-        this.pal_objects = [];
-        this.TEXTURE_WIDTH = 320;
-        this.TEXTURE_HEIGHT = 320;
-        this.isImageUpdate = false;
-        this.scaleZ = 1.0;
-        this.isScaleZ = false;
-        this.speedScaleZ = 0.0001;
-        this.isMoveToFront_Pal = false;
-        this.translateZ_pal = 0;
-        this.glitchDist = 0.01;
-        this.time = 0;
-        this._threshold = -999.0;
-        this.animationNum = 0.0;
-        this.isShaderReplace = false;
-        this.moveFlontSpeed = 3.0;
-        this.isWireGlitch = false;
-        this.isEnd = false;
-        this.replaceShader_WireWave = function (object, isTransparent, isWire) {
-            if (!_this.isShaderReplace) {
-                // let materials = object.children[0].material.materials;
-                var materials = object.children[0].children[0].material.materials;
-                _this.materials = materials;
-                console.log(materials);
-                for (var i = 0; i < materials.length; i++) {
-                    //let img = materials[i].map.image.src;//.attributes.currentSrc;
-                    console.log(materials[i]);
-                    console.log(materials[i].map);
-                    console.log(materials[i].map.image);
-                    var img = materials[i].map.image.currentSrc;
-                    var _uniforms = {
-                        time: { value: 1.0 },
-                        texture: { value: new THREE.TextureLoader().load(img) },
-                        transparent: { value: isTransparent },
-                        threshold: { value: 0 },
-                        texturePosition: { value: null },
-                        isDisplay: { value: true },
-                        glitchVec: { value: new THREE.Vector3(1, 0, 0) },
-                        glitchDist: { value: 0.0 },
-                        animationNum: { value: 0 }
-                    };
-                    _this.uniforms.push(_uniforms);
-                    // materials[i].wireframe = true;
-                    materials[i] = new THREE.ShaderMaterial({
-                        uniforms: _uniforms,
-                        vertexShader: document.getElementById("vertex_pal").textContent,
-                        fragmentShader: document.getElementById("fragment_pal").textContent,
-                        wireframe: isWire,
-                        transparent: true,
-                        side: THREE.DoubleSide
-                        // drawBuffer:true
-                    });
-                }
-                return object;
-            }
-        };
-        this.reset = function () {
-            _this.isMoveToFront_Pal = false;
-            _this.isScaleZ = false;
-            _this.scaleZ = 1.0;
-            _this.speedScaleZ = 0.0001;
-            _this.isMoveToFront_Pal = false;
-            _this.translateZ_pal = 0;
-            _this.glitchDist = 0.01;
-            _this.time = 0;
-            _this._threshold = 999.0;
-            _this.animationNum = 0.0;
-            _this.moveFlontSpeed = 3.0;
-            _this.isWireGlitch = false;
-            _this.isEnd = false;
-            _this.scene.scale.set(1.2, 1, _this.scaleZ);
-            // this.scene.position.set(1.2,1,this.scaleZ);
-            for (var i = 0; i < _this.uniforms.length; i++) {
-                _this.uniforms[i].glitchDist.value = 0;
-                _this.materials[i].wireframe = false;
-                _this.uniforms[i].animationNum.value = 0;
-            }
-            for (var i = 0; i < _this.pal_objects.length; i++) {
-                _this.pal_objects[i].position.set(-1, -1, 0);
-            }
-            _this.pal_objects[0].translateY(0);
-            _this.pal_objects[0].translateZ(0);
-            _this.scene.rotation.setFromVector3(new THREE.Vector3(0, 0, 0));
-        };
-        this.resetandgo = function () {
-            _this.reset();
-            _this.isMoveToFront_Pal = true;
-        };
-        this.renderer = renderer;
-        this.vthree = vthree;
-        this.createScene();
-        this.createImage();
-        this.gui = gui;
-        console.log("scene created!");
-    }
-    // ******************************************************
-    Scene01.prototype.createScene = function () {
-        var _this = this;
-        this.scene = new THREE.Scene();
-        // 立方体のジオメトリーを作成
-        this.geometry = new THREE.BoxGeometry(1, 1, 1);
-        // 緑のマテリアルを作成
-        this.material = new THREE.MeshStandardMaterial({
-            roughness: 0.7,
-            color: 0xffffff,
-            bumpScale: 0.002,
-            metalness: 0.2
-        });
-        // 上記作成のジオメトリーとマテリアルを合わせてメッシュを生成
-        this.cube = new THREE.Mesh(this.geometry, this.material);
-        // メッシュをシーンに追加
-        // this.scene.add(this.cube);
-        var ambient = new THREE.AmbientLight(0xffffff);
-        this.scene.add(ambient);
-        var dLight = new THREE.DirectionalLight(0xffffff, 0.2);
-        dLight.position.set(0, 1, 0).normalize();
-        this.scene.add(dLight);
-        var directionalLight = new THREE.DirectionalLight(0xffeedd);
-        directionalLight.position.set(0, 0, 1).normalize();
-        this.scene.add(directionalLight);
-        var onProgress = function (xhr) {
-            if (xhr.lengthComputable) {
-                var percentComplete = xhr.loaded / xhr.total * 100;
-                console.log(Math.round(percentComplete, 2) + '% downloaded');
-            }
-        };
-        var onError = function (xhr) {
-        };
-        var loader = new THREE.ColladaLoader();
-        loader.options.convertUpAxis = true;
-        for (var i = 0; i < 1; i++) {
-            loader.load('./models/pal/pal.dae', function (collada) {
-                var object = collada.scene;
-                console.log(object);
-                object.position.y = -1;
-                object.position.x = -1;
-                //object.rotation.y = 0.08 + Math.PI;
-                _this.pal_objects.push(object);
-                _this.scene.add(object);
-            }, onProgress, onError);
-        }
-        // カメラを作成
-        this.camera = new THREE.PerspectiveCamera(105, window.innerWidth / window.innerHeight, 0.1, 1000);
-        // カメラ位置を設定
-        this.scene.scale.set(1.2, 1, 1);
-        this.camera.position.z = 30;
-        this.initComputeRenderer();
-    };
-    Scene01.prototype.initComputeRenderer = function () {
-        this.gpuCompute = new GPUComputationRenderer(this.TEXTURE_WIDTH, this.TEXTURE_HEIGHT, this.renderer);
-        console.log(this.gpuCompute);
-        var dtPosition = this.gpuCompute.createTexture();
-        this.fillTexture(dtPosition);
-        this.positionVariable = this.gpuCompute.addVariable("texturePosition", document.getElementById('computeShaderPosition').textContent, dtPosition);
-        this.gpuCompute.setVariableDependencies(this.positionVariable, [this.positionVariable]);
-        var error = this.gpuCompute.init();
-        if (error !== null) {
-            console.error(error);
-        }
-    };
-    Scene01.prototype.fillTexture = function (texturePosition) {
-        var posArray = texturePosition.image.data;
-        for (var k = 0, k1 = posArray.length; k < k1; k += 4) {
-            var x, y, z;
-            x = 0;
-            y = 0;
-            z = 0;
-            posArray[k + 0] = x;
-            posArray[k + 1] = y;
-            posArray[k + 2] = z;
-            posArray[k + 3] = 0;
-        }
-    };
-    // ******************************************************
-    Scene01.prototype.keyUp = function (e) {
-    };
-    Scene01.prototype.click = function () {
-        this.replaceShader_WireWave(this.pal_objects[0], 0, false);
-        this.isShaderReplace = true;
-        // this.replaceShader_WireWave(this.pal_objects[1],1,false);
-    };
-    Scene01.prototype.createImage = function () {
-        this.image_uniform = {
-            texture: { value: new THREE.TextureLoader().load("./Texture/pal01.png") },
-            time: { value: 0.0 },
-            noiseSeed: { value: 0.1 },
-            noiseScale: { value: 0.1 },
-            time_scale_vertex: { value: 0.0 },
-            noiseSeed_vertex: { value: 0.1 },
-            noiseScale_vertex: { value: 0.1 },
-            distance_threshold: { value: 0.3 },
-            display: { value: true }
-        };
-        // 立方体のジオメトリーを作成
-        this.plane_geometry = new THREE.PlaneGeometry(1, window.innerHeight / window.innerWidth, 100, 100);
-        // 緑のマテリアルを作成
-        this.plane_material = new THREE.ShaderMaterial({
-            uniforms: this.image_uniform,
-            vertexShader: document.getElementById('imageVertexShader').textContent,
-            fragmentShader: document.getElementById('imageFragmentShader').textContent,
-            side: THREE.DoubleSide
-        });
-        // 上記作成のジオメトリーとマテリアルを合わせてメッシュを生成
-        this.plane = new THREE.Mesh(this.plane_geometry, this.plane_material);
-        // メッシュをシーンに追加
-        // this.scene.add( this.plane );
-    };
-    // ******************************************************
-    Scene01.prototype.keyDown = function (e) {
-        if (e.key == "Space") {
-            this.replaceShader_WireWave(this.pal_objects[0], 0, false);
-            this.isShaderReplace = true;
-        }
-        if (e.key == "p") {
-            this.image_uniform.display.value = !this.image_uniform.display.value;
-        }
-        if (e.key == "m") {
-            this.isMoveToFront_Pal = !this.isMoveToFront_Pal;
-        }
-        if (e.key == "d") {
-            for (var i = 0; i < this.uniforms.length; i++) {
-                this.uniforms[i].isDisplay.value = !this.uniforms[i].isDisplay.value;
-            }
-        }
-        if (e.key == "t") {
-            this._threshold = -40.0;
-        }
-        if (e.key == "w") {
-            this.isWireGlitch = !this.isWireGlitch;
-        }
-        if (e.key == "z") {
-            this.isScaleZ = !this.isScaleZ;
-        }
-        if (e.key == "a") {
-            for (var i = 0; i < this.uniforms.length; i++) {
-                this.uniforms[i].animationNum.value = 1;
-            }
-        }
-        if (e.key == "e") {
-            this.isEnd = !this.isEnd;
-            // console.log(this.isEnd);
-        }
-        if (e.key == "r") {
-            this.reset();
-        }
-    };
-    // ******************************************************
-    Scene01.prototype.mouseMove = function (e) {
-    };
-    // ******************************************************
-    Scene01.prototype.onMouseDown = function (e) {
-    };
-    // ******************************************************
-    Scene01.prototype.update = function (time) {
-        if (this.vthree.oscValue[1] == 0) {
-            this.reset();
-        }
-        if (this.vthree.oscValue[1] == 1) {
-            this.reset();
-            // this.replaceShader_WireWave(this.pal_objects[0],0,false);
-        }
-        if (this.vthree.oscValue[1] == 65) {
-            this.isMoveToFront_Pal = true;
-        }
-        if (this.vthree.oscValue[1] == 66) {
-            // this.isMoveToFront_Pal = true;
-            this.isScaleZ = true;
-        }
-        if (this.vthree.oscValue[1] == 74) {
-            this.scaleZ = 0;
-            this.isScaleZ = false;
-            this.scene.scale.set(1.2, 1, 1);
-            // this.isMoveToFront_Pal = false;
-            // this.translateZ_pal = 0;
-            // this.pal_objects[0
-            // this.isWireGlitch = true;
-        }
-        if (this.vthree.oscValue[1] == 75) {
-            this.isWireGlitch = true;
-            // this.glitchDist = 0.01;
-        }
-        if (this.isWireGlitch) {
-            this.isMoveToFront_Pal = false;
-            for (var i = 0; i < this.materials.length; i++) {
-                this.materials[i].wireframe = !this.materials[i].wireframe;
-            }
-            if (Math.random() < 0.9) {
-                // this
-                this.glitchDist *= 1.1;
-                for (var i = 0; i < this.uniforms.length; i++) {
-                    // if(this.glitchDist >= Math.PI/2)
-                    // {
-                    //     this.glitchDist = 0.0;
-                    // }
-                    this.uniforms[i].glitchDist.value = this.glitchDist * 20.0;
-                }
-            }
-        }
-        if (this.vthree.oscValue[1] == 76) {
-            this.isEnd = true;
-            this.isMoveToFront_Pal = true;
-        }
-        if (this.isEnd) {
-            this.scene.rotation.setFromVector3(new THREE.Vector3(4.75, 0, 0));
-            this.glitchDist = 0.0;
-            for (var i = 0; i < this.uniforms.length; i++) {
-                this.uniforms[i].animationNum.value = 1;
-                this.uniforms[i].glitchDist.value = Math.abs(Math.sin(this.glitchDist)) * 20.0;
-                this.materials[i].wireframe = false;
-            }
-            this.isWireGlitch = false;
-            // this.isEnd = true;
-            this.isMoveToFront_Pal = true;
-        }
-        if (this.isScaleZ) {
-            this.speedScaleZ *= 1.1;
-            this.scaleZ += this.speedScaleZ;
-            if (this.scaleZ <= 25.0) {
-                this.scene.scale.set(1.2, 1, this.scaleZ);
-            }
-        }
-        this.renderer.setClearColor(0x000000);
-        // if(this._threshold <= 40.0)
-        // {
-        //     this._threshold += 0.2;
-        // }
-        this.time++;
-        this.gpuCompute.compute();
-        // this.cube.position.z = this.gui.parameters.threshold;
-        // this.cube.scale.set(0,0,0);
-        var timerStep = 0.004;
-        for (var i = 0; i < this.uniforms.length; i++) {
-            //console.log(this.uniforms[i]);
-            this.uniforms[i].texturePosition.value = this.gpuCompute.getCurrentRenderTarget(this.positionVariable).texture;
-            this.uniforms[i].time.value += timerStep;
-            // this.uniforms[i].threshold.value = this._threshold ;//Math.sin(time*0.0005)*30;//this.gui.parameters.threshold;
-        }
-        if (this.isMoveToFront_Pal) {
-            console.log(this.translateZ_pal);
-            if (this.translateZ_pal < -12.8) {
-                // this.reset();
-                // this.isMoveToFront_Pal= true;
-                this.resetandgo();
-            }
-            if (this.translateZ_pal < -9.7 && this.translateZ_pal > -9.8) {
-                var p = Math.random();
-                if (p < 0.02) {
-                    if (Math.random() < 0.4) {
-                        this.isScaleZ = true;
-                        setTimeout(this.resetandgo, 2500);
-                    }
-                    else {
-                        this.isWireGlitch = true;
-                        setTimeout(this.resetandgo, 5000);
-                    }
-                    this.isMoveToFront_Pal = false;
-                }
-            }
-            this.moveFlontSpeed += (0.001 - this.moveFlontSpeed) * 0.3;
-            this.translateZ_pal -= this.moveFlontSpeed;
-            if (this.isEnd) {
-                this.pal_objects[0].translateZ(0);
-                this.pal_objects[0].translateY(this.translateZ_pal * 0.001);
-            }
-            else {
-                this.pal_objects[0].translateY(0);
-                this.pal_objects[0].translateZ(-this.translateZ_pal * 0.001);
-            }
-        }
-        // if(this.isImageUpdate)
-        // {
-        //     this.image_uniform.noiseScale.value = this.gui.parameters.image_noiseScale;
-        //     this.image_uniform.noiseSeed.value = this.gui.parameters.image_noiseSeed;
-        //     this.image_uniform.time.value += this.gui.parameters.image_speed;
-        //     this.image_uniform.noiseScale_vertex.value = this.gui.parameters.image_noiseScale_vertex;
-        //     this.image_uniform.noiseSeed_vertex.value = this.gui.parameters.image_noiseSeed_vertex;
-        //     this.image_uniform.time_scale_vertex.value = this.gui.parameters.image_speed_scale__vertex;
-        //     this.image_uniform.distance_threshold.value = this.gui.parameters.image_distance_threshold;
-        // }
-        //
-        // this.plane.position.set (
-        //     this.gui.parameters.image_positionX,
-        //     this.gui.parameters.image_positionY,
-        //     this.gui.parameters.image_positionZ,
-        // );
-        //
-        // this.planee.scale.set(14,14,14);
-        //this.scene.position.z += 0.1;
-        // this.cube.rotation.x += 0.1;
-        // this.cube.rotation.y += 0.1;
-        this.scene.rotation.setFromVector3(new THREE.Vector3(0, this.gui.parameters.scene_rotation_y, 0));
-    };
-    return Scene01;
-}());
-/* harmony default export */ __webpack_exports__["a"] = (Scene01);
-
-
-/***/ }),
-/* 5 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__stats_js__ = __webpack_require__(15);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_jquery__ = __webpack_require__(10);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__OrbitControls_js__ = __webpack_require__(14);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__OrbitControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__OrbitControls_js__);
-
-
-
-var VThree = (function () {
-    function VThree(startAlpha, transparent, target, config) {
-        var _this = this;
-        // 現在のシーンの番号
-        this.NUM = 0;
-        // シーンを格納する配列
-        this.scenes = [];
-        this.controls = [];
-        this.opacityStep = 0.1;
-        this.opacity = 1.0;
-        this.transparent = false;
-        this.key_sceneNext = "ArrowRight";
-        this.key_scenePrev = "ArrowLeft";
-        this.isOrbitControls = false;
-        this.debugMode = false;
-        this.cameras = [];
-        this.isUpdate = true;
-        this.debugCounter = 0;
-        this.oscValue = [];
-        this.onMouseDown = function (e) {
-            _this.scenes[_this.NUM].onMouseDown(e);
-        };
-        // ウィンドウの幅が変わったときの処理
-        this.onWindowResize = function () {
-            var windowHalfX = window.innerWidth / 2;
-            var windowHalfY = window.innerHeight / 2;
-            _this.scenes[_this.NUM].camera.aspect = window.innerWidth / window.innerHeight;
-            _this.scenes[_this.NUM].camera.updateProjectionMatrix();
-            _this.renderer.setSize(window.innerWidth, window.innerHeight);
-            console.log("resize");
-        };
-        // 現在のシーン番号が、不適切な値にならないようにチェック
-        this.checkNum = function () {
-            if (_this.NUM < 0) {
-                _this.NUM = _this.scenes.length - 1;
-            }
-            if (_this.NUM >= _this.scenes.length) {
-                _this.NUM = 0;
-            }
-        };
-        this.onClick = function () {
-            _this.scenes[_this.NUM].click();
-        };
-        // ←→キーでシーン番号を足し引き
-        this.onKeyUp = function (e) {
-            _this.scenes[_this.NUM].keyUp(e);
-        };
-        this.onMouseMove = function (e) {
-            try {
-                _this.scenes[_this.NUM].mouseMove(e);
-            }
-            finally {
-            }
-        };
-        this.onKeyDown = function (e) {
-            console.log(e);
-            // console.log(this.NUM);
-            try {
-                if (e.key == _this.key_sceneNext) {
-                    _this.NUM++;
-                    _this.checkNum();
-                }
-                if (e.key == _this.key_scenePrev) {
-                    _this.NUM--;
-                    _this.checkNum();
-                }
-                if (e.key == "ArrowUp") {
-                    _this.opacity += _this.opacityStep;
-                    if (_this.opacity > 1.0) {
-                        _this.opacity = 1.0;
-                    }
-                    _this.updateCanvasAlpha();
-                }
-                if (e.key == "ArrowDown") {
-                    _this.opacity -= _this.opacityStep;
-                    if (_this.opacity < 0.0) {
-                        _this.opacity = 0.0;
-                    }
-                    _this.updateCanvasAlpha();
-                }
-                if (e.key == "d") {
-                    //this.debugCounter++;
-                }
-                if (e.code == "Space") {
-                    // this.StartStop();
-                    if (__WEBPACK_IMPORTED_MODULE_1_jquery__(".blackScreen").hasClass("start")) {
-                        __WEBPACK_IMPORTED_MODULE_1_jquery__(".blackScreen").removeClass("start");
-                        __WEBPACK_IMPORTED_MODULE_1_jquery__(".blackScreen").addClass("end");
-                    }
-                    else {
-                        __WEBPACK_IMPORTED_MODULE_1_jquery__(".blackScreen").addClass("start");
-                        __WEBPACK_IMPORTED_MODULE_1_jquery__(".blackScreen").removeClass("end");
-                    }
-                }
-                if (_this.debugCounter >= 5) {
-                    _this.changeDebug();
-                    _this.debugCounter = 0;
-                }
-                console.log(_this.NUM);
-                _this.scenes[_this.NUM].keyDown(e);
-                for (var i = 0; i < _this.controls.length; i++) {
-                    if (i == _this.NUM) {
-                        _this.controls[i].enabled = true;
-                    }
-                    else {
-                        _this.controls[i].enabled = false;
-                    }
-                }
-            }
-            finally {
-            }
-        };
-        console.log(config);
-        this.debugMode = (config === undefined ? false : config.debugMode);
-        this.opacity = startAlpha;
-        this.transparent = transparent;
-        this.rendertarget = target;
-        // 初期化処理後、イベント登録
-        this.init();
-        window.addEventListener('resize', this.onWindowResize, false);
-        window.addEventListener('click', this.onClick, false);
-        window.addEventListener('onmousedown', this.onMouseDown, false);
-        document.addEventListener("keydown", this.onKeyDown, true);
-        document.addEventListener("keyup", this.onKeyUp, true);
-        document.addEventListener("mousemove", this.onMouseMove, true);
-    }
-    VThree.prototype.initOrbitContorols = function () {
-    };
-    VThree.prototype.reset = function () {
-        for (var i = 0; i < this.scenes.length; i++) {
-            this.scenes[i].reset();
-        }
-    };
-    VThree.prototype.init = function () {
-        // Rendererを作る
-        this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-        this.renderer.setPixelRatio(window.devicePixelRatio);
-        this.renderer.setSize(window.innerWidth, window.innerHeight);
-        this.renderer.sortObjects = false;
-        this.renderer.shadowMap.enabled = true;
-        this.renderer.shadowMap.type = THREE.BasicShadowMap;
-        this.renderer.domElement.id = "main";
-        this.renderer.gammaInput = true;
-        this.renderer.gammaOutput = true;
-        document.body.appendChild(this.renderer.domElement);
-        this.updateCanvasAlpha();
-        // this.stats = new Stats();
-        // document.body.appendChild(this.stats.domElement);
-        this.debug();
-    };
-    // 管理したいシーンを格納する関数
-    VThree.prototype.addScene = function (scene) {
-        this.scenes.push(scene);
-        this.cameras.push(scene.camera);
-        // let controls = new THREE.OrbitControls( scene.camera, this.renderer.domElement );
-        // controls.enableKeys = false;
-        // this.controls.push(controls);
-    };
-    VThree.prototype.nextScene = function () {
-        this.NUM++;
-        this.checkNum();
-        // this.checkGuiOpen();
-    };
-    VThree.prototype.StartStop = function () {
-        this.isUpdate = !this.isUpdate;
-        if (this.isUpdate) {
-            requestAnimationFrame(this.draw.bind(this));
-        }
-    };
-    VThree.prototype.checkGuiOpen = function () {
-        for (var i = 0; i < this.scenes.length; i++) {
-            if (this.NUM == i) {
-                this.scenes[i].guiOpen();
-            }
-            else {
-                this.scenes[i].guiClose();
-            }
-        }
-    };
-    VThree.prototype.updateCanvasAlpha = function () {
-        if (this.transparent) {
-            this.renderer.domElement.style.opacity = this.opacity;
-        }
-    };
-    VThree.prototype.nowScene = function () {
-        return this.scenes[this.NUM];
-    };
-    VThree.prototype.changeDebug = function () {
-        this.debugMode = !this.debugMode;
-        this.debug();
-    };
-    VThree.prototype.debug = function () {
-        if (this.debugMode) {
-            __WEBPACK_IMPORTED_MODULE_1_jquery__('.dg').css('display', 'block');
-        }
-        else {
-            __WEBPACK_IMPORTED_MODULE_1_jquery__('.dg').css('display', 'none');
-        }
-    };
-    VThree.prototype.start = function () {
-    };
-    // 最終的な描写処理と、アニメーション関数をワンフレームごとに実行
-    VThree.prototype.draw = function (time) {
-        // this.stats.update(time);
-        this.scenes[this.NUM].update(time, this.isUpdate);
-        this.renderer.render(this.scenes[this.NUM].scene, this.scenes[this.NUM].camera, this.rendertarget);
-        if (this.isUpdate) {
-            requestAnimationFrame(this.draw.bind(this));
-        }
-        this.oscValue = [];
-    };
-    return VThree;
-}());
-/* harmony default export */ __webpack_exports__["a"] = (VThree);
 
 
 /***/ }),
@@ -21674,25 +21674,29 @@ var GUIParameters = (function () {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_examples_js_controls_DragControls_js__ = __webpack_require__(0);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__node_modules_three_examples_js_controls_DragControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__node_modules_three_examples_js_controls_DragControls_js__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_three_examples_js_controls_TrackballControls_js__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__node_modules_three_examples_js_controls_TrackballControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__node_modules_three_examples_js_controls_TrackballControls_js__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__DragControls_js__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__DragControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__DragControls_js__);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__TrackballControls_js__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__TrackballControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__TrackballControls_js__);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__loaders_ColladaLoader_js__ = __webpack_require__(6);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__loaders_ColladaLoader_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__loaders_ColladaLoader_js__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__vthree__ = __webpack_require__(5);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__Mapper__ = __webpack_require__(3);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__Scene01__ = __webpack_require__(4);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__GUI__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__vthree__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__Mapper__ = __webpack_require__(1);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__Scene02__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__GUI__ = __webpack_require__(0);
 /**
  * Created by PurpleUma on 8/25/17.
  */
+// const THREE = require("three");
 // import THREE = require("three");
+// import "./three.min.js"
+// import * as THREE from 'three';
+console.log(THREE);
+// import "./GPUComputationRenderer.js"
 
 
 
 // import "./loaders/ColladaLoader2.js";
-// import "../../node_modules/three/build/three.min.js";
 
 
 
@@ -21703,9 +21707,11 @@ var Main = (function () {
         // $.getJSON("json/guisetting.json" , (data) => {
         console.log("main start");
         this.vthree = new __WEBPACK_IMPORTED_MODULE_3__vthree__["a" /* default */](1.0, false);
-        this.scene01 = new __WEBPACK_IMPORTED_MODULE_5__Scene01__["a" /* default */](this.vthree.renderer, this.gui, this.vthree);
-        this.mapper = new __WEBPACK_IMPORTED_MODULE_4__Mapper__["a" /* default */](this.scene01);
-        this.vthree.addScene(this.scene01);
+        // this.scene01 = new Scene01(this.vthree.renderer,this.gui, this.vthree);
+        this.scene02 = new __WEBPACK_IMPORTED_MODULE_5__Scene02__["a" /* default */](this.vthree.renderer, this.gui, this.vthree);
+        this.mapper = new __WEBPACK_IMPORTED_MODULE_4__Mapper__["a" /* default */](this.scene02);
+        this.vthree.addScene(this.scene02);
+        // this.vthree.addScene(this.scene01);
         // }
         // this.vthree.draw();
     }
@@ -22736,186 +22742,6 @@ Object.defineProperties( THREE.OrbitControls.prototype, {
 	}
 
 } );
-
-
-/***/ }),
-/* 15 */
-/***/ (function(module, __webpack_exports__, __webpack_require__) {
-
-"use strict";
-/* unused harmony export default */
-/**
- * @author mrdoob / http://mrdoob.com/
- */
-
-var Stats = function () {
-
-    var mode = 0;
-
-    var container = document.createElement( 'div' );
-    container.style.cssText = 'position:fixed;top:0;left:0;cursor:pointer;opacity:0.9;z-index:10000';
-    container.addEventListener( 'click', function ( event ) {
-
-        event.preventDefault();
-        showPanel( ++ mode % container.children.length );
-
-    }, false );
-
-    //
-
-    function addPanel( panel ) {
-
-        container.appendChild( panel.dom );
-        return panel;
-
-    }
-
-    function showPanel( id ) {
-
-        for ( var i = 0; i < container.children.length; i ++ ) {
-
-            container.children[ i ].style.display = i === id ? 'block' : 'none';
-
-        }
-
-        mode = id;
-
-    }
-
-    //
-
-    var beginTime = ( performance || Date ).now(), prevTime = beginTime, frames = 0;
-
-    var fpsPanel = addPanel( new Stats.Panel( 'FPS', '#0ff', '#002' ) );
-    var msPanel = addPanel( new Stats.Panel( 'MS', '#0f0', '#020' ) );
-
-    if ( self.performance && self.performance.memory ) {
-
-        var memPanel = addPanel( new Stats.Panel( 'MB', '#f08', '#201' ) );
-
-    }
-
-    showPanel( 0 );
-
-    return {
-
-        REVISION: 16,
-
-        dom: container,
-
-        addPanel: addPanel,
-        showPanel: showPanel,
-
-        begin: function () {
-
-            beginTime = ( performance || Date ).now();
-
-        },
-
-        end: function () {
-
-            frames ++;
-
-            var time = ( performance || Date ).now();
-
-            msPanel.update( time - beginTime, 200 );
-
-            if ( time >= prevTime + 1000 ) {
-
-                fpsPanel.update( ( frames * 1000 ) / ( time - prevTime ), 100 );
-
-                prevTime = time;
-                frames = 0;
-
-                if ( memPanel ) {
-
-                    var memory = performance.memory;
-                    memPanel.update( memory.usedJSHeapSize / 1048576, memory.jsHeapSizeLimit / 1048576 );
-
-                }
-
-            }
-
-            return time;
-
-        },
-
-        update: function () {
-
-            beginTime = this.end();
-
-        },
-
-        // Backwards Compatibility
-
-        domElement: container,
-        setMode: showPanel
-
-    };
-
-};
-
-Stats.Panel = function ( name, fg, bg ) {
-
-    var min = Infinity, max = 0, round = Math.round;
-    var PR = round( window.devicePixelRatio || 1 );
-
-    var WIDTH = 80 * PR, HEIGHT = 48 * PR,
-        TEXT_X = 3 * PR, TEXT_Y = 2 * PR,
-        GRAPH_X = 3 * PR, GRAPH_Y = 15 * PR,
-        GRAPH_WIDTH = 74 * PR, GRAPH_HEIGHT = 30 * PR;
-
-    var canvas = document.createElement( 'canvas' );
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
-    canvas.style.cssText = 'width:80px;height:48px';
-
-    var context = canvas.getContext( '2d' );
-    context.font = 'bold ' + ( 9 * PR ) + 'px Helvetica,Arial,sans-serif';
-    context.textBaseline = 'top';
-
-    context.fillStyle = bg;
-    context.fillRect( 0, 0, WIDTH, HEIGHT );
-
-    context.fillStyle = fg;
-    context.fillText( name, TEXT_X, TEXT_Y );
-    context.fillRect( GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT );
-
-    context.fillStyle = bg;
-    context.globalAlpha = 0.9;
-    context.fillRect( GRAPH_X, GRAPH_Y, GRAPH_WIDTH, GRAPH_HEIGHT );
-
-    return {
-
-        dom: canvas,
-
-        update: function ( value, maxValue ) {
-
-            min = Math.min( min, value );
-            max = Math.max( max, value );
-
-            context.fillStyle = bg;
-            context.globalAlpha = 1;
-            context.fillRect( 0, 0, WIDTH, GRAPH_Y );
-            context.fillStyle = fg;
-            context.fillText( round( value ) + ' ' + name + ' (' + round( min ) + '-' + round( max ) + ')', TEXT_X, TEXT_Y );
-
-            context.drawImage( canvas, GRAPH_X + PR, GRAPH_Y, GRAPH_WIDTH - PR, GRAPH_HEIGHT, GRAPH_X, GRAPH_Y, GRAPH_WIDTH - PR, GRAPH_HEIGHT );
-
-            context.fillRect( GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, GRAPH_HEIGHT );
-
-            context.fillStyle = bg;
-            context.globalAlpha = 0.9;
-            context.fillRect( GRAPH_X + GRAPH_WIDTH - PR, GRAPH_Y, PR, round( ( 1 - ( value / maxValue ) ) * GRAPH_HEIGHT ) );
-
-        }
-
-    };
-
-};
-
-
-
 
 
 /***/ })
