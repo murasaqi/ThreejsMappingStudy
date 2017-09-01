@@ -63,7 +63,7 @@
 /******/ 	__webpack_require__.p = "";
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = 13);
+/******/ 	return __webpack_require__(__webpack_require__.s = 14);
 /******/ })
 /************************************************************************/
 /******/ ([
@@ -71,8 +71,8 @@
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__GUIParameters__ = __webpack_require__(12);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_dat_gui__ = __webpack_require__(7);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__GUIParameters__ = __webpack_require__(13);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_dat_gui__ = __webpack_require__(8);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1_dat_gui___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1_dat_gui__);
 
 
@@ -128,10 +128,10 @@ var GUI = (function () {
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-var Stats = __webpack_require__(11);
+var Stats = __webpack_require__(12);
 var Mapper = (function () {
     // ******************************************************
-    function Mapper(scnene01) {
+    function Mapper(scnene01, scene02) {
         var _this = this;
         this.mouse = new THREE.Vector2();
         this.screenWidth = window.innerWidth;
@@ -140,6 +140,7 @@ var Mapper = (function () {
         this.isMouseDown = false;
         this.planePosZ = 0;
         this.raycastedObjs = [];
+        this.SCENE_NUM = 0;
         this.initPlaneVerices = [];
         this.onWindowResize = function () {
             _this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -153,6 +154,16 @@ var Mapper = (function () {
                         _this.dragableObjs[i].material.opacity = Math.abs(1.0 - _this.dragableObjs[i].material.opacity);
                     }
                 }
+            }
+            if (e.key == "ArrowRight") {
+                _this.SCENE_NUM++;
+                if (_this.SCENE_NUM == 2)
+                    _this.SCENE_NUM = 0;
+            }
+            if (e.key == "ArrowLeft") {
+                _this.SCENE_NUM--;
+                if (_this.SCENE_NUM < 0)
+                    _this.SCENE_NUM = 1;
             }
             if (e.key == "C") {
                 _this.controls.reset();
@@ -215,6 +226,7 @@ var Mapper = (function () {
             // this.stats.update();
         };
         this.scene01 = scnene01;
+        this.scene02 = scene02;
         this.createScene();
         this.animate();
         console.log("scene created!");
@@ -311,11 +323,18 @@ var Mapper = (function () {
     // ******************************************************
     Mapper.prototype.render = function () {
         // this.screenMat.map = this.rendertarget.texture;
-        this.scene01.update();
         this.controls.update();
-        if (this.scene01.isUpdate) {
+        // if(this.scene01.isUpdate)
+        // {
+        if (this.SCENE_NUM == 0) {
+            this.scene01.update();
             this.renderer.render(this.scene01.scene, this.scene01.camera, this.rendertarget);
         }
+        else {
+            this.scene02.update();
+            this.renderer.render(this.scene02.scene, this.scene02.camera, this.rendertarget);
+        }
+        // }
         this.renderer.render(this.scene, this.camera);
     };
     return Mapper;
@@ -325,6 +344,421 @@ var Mapper = (function () {
 
 /***/ }),
 /* 2 */
+/***/ (function(module, __webpack_exports__, __webpack_require__) {
+
+"use strict";
+// *********** ひとつめのシーン *********** //
+var Scene01 = (function () {
+    // ******************************************************
+    function Scene01(renderer, gui, vthree) {
+        var _this = this;
+        this.uniforms = [];
+        this.materials = [];
+        this.pal_objects = [];
+        this.TEXTURE_WIDTH = 320;
+        this.TEXTURE_HEIGHT = 320;
+        this.isImageUpdate = false;
+        this.scaleZ = 1.0;
+        this.isScaleZ = false;
+        this.speedScaleZ = 0.0001;
+        this.isMoveToFront_Pal = false;
+        this.translateZ_pal = 0;
+        this.glitchDist = 0.01;
+        this.time = 0;
+        this._threshold = -999.0;
+        this.animationNum = 0.0;
+        this.isShaderReplace = false;
+        this.moveFlontSpeed = 3.0;
+        this.isWireGlitch = false;
+        this.isEnd = false;
+        this.isUpdate = true;
+        this.replaceShader_WireWave = function (object, isTransparent, isWire) {
+            if (!_this.isShaderReplace) {
+                // let materials = object.children[0].material.materials;
+                var materials = object.children[0].children[0].material.materials;
+                _this.materials = materials;
+                console.log(materials);
+                for (var i = 0; i < materials.length; i++) {
+                    //let img = materials[i].map.image.src;//.attributes.currentSrc;
+                    console.log(materials[i]);
+                    console.log(materials[i].map);
+                    console.log(materials[i].map.image);
+                    var img = materials[i].map.image.currentSrc;
+                    var _uniforms = {
+                        time: { value: 1.0 },
+                        texture: { value: new THREE.TextureLoader().load(img) },
+                        transparent: { value: isTransparent },
+                        threshold: { value: 0 },
+                        texturePosition: { value: null },
+                        isDisplay: { value: true },
+                        glitchVec: { value: new THREE.Vector3(1, 0, 0) },
+                        glitchDist: { value: 0.0 },
+                        animationNum: { value: 0 }
+                    };
+                    _this.uniforms.push(_uniforms);
+                    // materials[i].wireframe = true;
+                    materials[i] = new THREE.ShaderMaterial({
+                        uniforms: _uniforms,
+                        vertexShader: document.getElementById("vertex_pal").textContent,
+                        fragmentShader: document.getElementById("fragment_pal").textContent,
+                        wireframe: isWire,
+                        transparent: true,
+                        side: THREE.DoubleSide
+                        // drawBuffer:true
+                    });
+                }
+                return object;
+            }
+        };
+        this.reset = function () {
+            _this.isMoveToFront_Pal = false;
+            _this.isScaleZ = false;
+            _this.scaleZ = 1.0;
+            _this.speedScaleZ = 0.0001;
+            _this.isMoveToFront_Pal = false;
+            _this.translateZ_pal = 0;
+            _this.glitchDist = 0.01;
+            _this.time = 0;
+            _this._threshold = 999.0;
+            _this.animationNum = 0.0;
+            _this.moveFlontSpeed = 3.0;
+            _this.isWireGlitch = false;
+            _this.isEnd = false;
+            _this.scene.scale.set(1.2, 1, _this.scaleZ);
+            // this.scene.position.set(1.2,1,this.scaleZ);
+            for (var i = 0; i < _this.uniforms.length; i++) {
+                _this.uniforms[i].glitchDist.value = 0;
+                _this.materials[i].wireframe = false;
+                _this.uniforms[i].animationNum.value = 0;
+            }
+            for (var i = 0; i < _this.pal_objects.length; i++) {
+                _this.pal_objects[i].position.set(-1, -1, 0);
+            }
+            _this.pal_objects[0].translateY(0);
+            _this.pal_objects[0].translateZ(0);
+            _this.scene.rotation.setFromVector3(new THREE.Vector3(0, 0, 0));
+        };
+        this.resetandgo = function () {
+            _this.reset();
+            _this.isMoveToFront_Pal = true;
+        };
+        this.renderer = renderer;
+        this.vthree = vthree;
+        this.createScene();
+        // this.createImage();
+        this.gui = gui;
+        console.log("scene created!");
+    }
+    // ******************************************************
+    Scene01.prototype.createScene = function () {
+        var _this = this;
+        this.scene = new THREE.Scene();
+        // 立方体のジオメトリーを作成
+        this.geometry = new THREE.BoxGeometry(1, 1, 1);
+        // 緑のマテリアルを作成
+        this.material = new THREE.MeshStandardMaterial({
+            roughness: 0.7,
+            color: 0xffffff,
+            bumpScale: 0.002,
+            metalness: 0.2
+        });
+        // 上記作成のジオメトリーとマテリアルを合わせてメッシュを生成
+        this.cube = new THREE.Mesh(this.geometry, this.material);
+        // メッシュをシーンに追加
+        // this.scene.add(this.cube);
+        var ambient = new THREE.AmbientLight(0xffffff);
+        this.scene.add(ambient);
+        var dLight = new THREE.DirectionalLight(0xffffff, 0.2);
+        dLight.position.set(0, 1, 0).normalize();
+        this.scene.add(dLight);
+        var directionalLight = new THREE.DirectionalLight(0xffeedd);
+        directionalLight.position.set(0, 0, 1).normalize();
+        this.scene.add(directionalLight);
+        var onProgress = function (xhr) {
+            if (xhr.lengthComputable) {
+                var percentComplete = xhr.loaded / xhr.total * 100;
+                if (Math.round(percentComplete, 2) == 100) {
+                    _this.isUpdate = true;
+                }
+                console.log(Math.round(percentComplete, 2) + '% downloaded');
+            }
+        };
+        var onError = function (xhr) {
+        };
+        var loader = new THREE.ColladaLoader();
+        loader.options.convertUpAxis = true;
+        // for(let i = 0; i < 1; i++)
+        // {
+        loader.load('./models/pal/pal.dae', function (collada) {
+            var object = collada.scene;
+            console.log(object);
+            object.position.y = -1;
+            object.position.x = -1;
+            //object.rotation.y = 0.08 + Math.PI;
+            _this.pal_objects.push(object);
+            _this.scene.add(object);
+        }, onProgress, onError);
+        // }
+        // カメラを作成
+        this.camera = new THREE.PerspectiveCamera(105, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // カメラ位置を設定
+        this.scene.scale.set(1.2, 1, 1);
+        this.camera.position.z = 30;
+        this.initComputeRenderer();
+    };
+    Scene01.prototype.initComputeRenderer = function () {
+        this.gpuCompute = new GPUComputationRenderer(this.TEXTURE_WIDTH, this.TEXTURE_HEIGHT, this.renderer);
+        console.log(this.gpuCompute);
+        var dtPosition = this.gpuCompute.createTexture();
+        this.fillTexture(dtPosition);
+        this.positionVariable = this.gpuCompute.addVariable("texturePosition", document.getElementById('computeShaderPosition').textContent, dtPosition);
+        this.gpuCompute.setVariableDependencies(this.positionVariable, [this.positionVariable]);
+        var error = this.gpuCompute.init();
+        if (error !== null) {
+            console.error(error);
+        }
+    };
+    Scene01.prototype.fillTexture = function (texturePosition) {
+        var posArray = texturePosition.image.data;
+        for (var k = 0, k1 = posArray.length; k < k1; k += 4) {
+            var x, y, z;
+            x = 0;
+            y = 0;
+            z = 0;
+            posArray[k + 0] = x;
+            posArray[k + 1] = y;
+            posArray[k + 2] = z;
+            posArray[k + 3] = 0;
+        }
+    };
+    // ******************************************************
+    Scene01.prototype.keyUp = function (e) {
+    };
+    Scene01.prototype.click = function () {
+        this.replaceShader_WireWave(this.pal_objects[0], 0, false);
+        this.isShaderReplace = true;
+        // this.replaceShader_WireWave(this.pal_objects[1],1,false);
+    };
+    Scene01.prototype.createImage = function () {
+        this.image_uniform = {
+            texture: { value: new THREE.TextureLoader().load("./Texture/pal01.png") },
+            time: { value: 0.0 },
+            noiseSeed: { value: 0.1 },
+            noiseScale: { value: 0.1 },
+            time_scale_vertex: { value: 0.0 },
+            noiseSeed_vertex: { value: 0.1 },
+            noiseScale_vertex: { value: 0.1 },
+            distance_threshold: { value: 0.3 },
+            display: { value: true }
+        };
+        // 立方体のジオメトリーを作成
+        this.plane_geometry = new THREE.PlaneGeometry(1, window.innerHeight / window.innerWidth, 100, 100);
+        // 緑のマテリアルを作成
+        this.plane_material = new THREE.ShaderMaterial({
+            uniforms: this.image_uniform,
+            vertexShader: document.getElementById('imageVertexShader').textContent,
+            fragmentShader: document.getElementById('imageFragmentShader').textContent,
+            side: THREE.DoubleSide
+        });
+        // 上記作成のジオメトリーとマテリアルを合わせてメッシュを生成
+        this.plane = new THREE.Mesh(this.plane_geometry, this.plane_material);
+        // メッシュをシーンに追加
+        // this.scene.add( this.plane );
+    };
+    // ******************************************************
+    Scene01.prototype.keyDown = function (e) {
+        if (e.key == "Space") {
+            this.replaceShader_WireWave(this.pal_objects[0], 0, false);
+            this.isShaderReplace = true;
+        }
+        if (e.key == "p") {
+            this.image_uniform.display.value = !this.image_uniform.display.value;
+        }
+        if (e.key == "m") {
+            this.isMoveToFront_Pal = !this.isMoveToFront_Pal;
+        }
+        if (e.key == "d") {
+            for (var i = 0; i < this.uniforms.length; i++) {
+                this.uniforms[i].isDisplay.value = !this.uniforms[i].isDisplay.value;
+            }
+        }
+        if (e.key == "t") {
+            this._threshold = -40.0;
+        }
+        if (e.key == "w") {
+            this.isWireGlitch = !this.isWireGlitch;
+        }
+        if (e.key == "z") {
+            this.isScaleZ = !this.isScaleZ;
+        }
+        if (e.key == "a") {
+            for (var i = 0; i < this.uniforms.length; i++) {
+                this.uniforms[i].animationNum.value = 1;
+            }
+        }
+        if (e.key == "e") {
+            this.isEnd = !this.isEnd;
+            // console.log(this.isEnd);
+        }
+        if (e.key == "r") {
+            this.resetandgo();
+        }
+    };
+    // ******************************************************
+    Scene01.prototype.mouseMove = function (e) {
+    };
+    // ******************************************************
+    Scene01.prototype.onMouseDown = function (e) {
+    };
+    // ******************************************************
+    Scene01.prototype.update = function (time) {
+        if (this.isUpdate) {
+            if (this.vthree.oscValue[1] == 0) {
+                this.reset();
+            }
+            if (this.vthree.oscValue[1] == 1) {
+                this.reset();
+                // this.replaceShader_WireWave(this.pal_objects[0],0,false);
+            }
+            if (this.vthree.oscValue[1] == 65) {
+                this.isMoveToFront_Pal = true;
+            }
+            if (this.vthree.oscValue[1] == 66) {
+                // this.isMoveToFront_Pal = true;
+                this.isScaleZ = true;
+            }
+            if (this.vthree.oscValue[1] == 74) {
+                this.scaleZ = 0;
+                this.isScaleZ = false;
+                this.scene.scale.set(1.2, 1, 1);
+                // this.isMoveToFront_Pal = false;
+                // this.translateZ_pal = 0;
+                // this.pal_objects[0
+                // this.isWireGlitch = true;
+            }
+            if (this.vthree.oscValue[1] == 75) {
+                this.isWireGlitch = true;
+                // this.glitchDist = 0.01;
+            }
+            if (this.isWireGlitch) {
+                this.isMoveToFront_Pal = false;
+                for (var i = 0; i < this.materials.length; i++) {
+                    this.materials[i].wireframe = !this.materials[i].wireframe;
+                }
+                if (Math.random() < 0.9) {
+                    // this
+                    this.glitchDist *= 1.1;
+                    for (var i = 0; i < this.uniforms.length; i++) {
+                        // if(this.glitchDist >= Math.PI/2)
+                        // {
+                        //     this.glitchDist = 0.0;
+                        // }
+                        this.uniforms[i].glitchDist.value = this.glitchDist * 20.0;
+                    }
+                }
+            }
+            if (this.vthree.oscValue[1] == 76) {
+                this.isEnd = true;
+                this.isMoveToFront_Pal = true;
+            }
+            if (this.isEnd) {
+                this.scene.rotation.setFromVector3(new THREE.Vector3(4.75, 0, 0));
+                this.glitchDist = 0.0;
+                for (var i = 0; i < this.uniforms.length; i++) {
+                    this.uniforms[i].animationNum.value = 1;
+                    this.uniforms[i].glitchDist.value = Math.abs(Math.sin(this.glitchDist)) * 20.0;
+                    this.materials[i].wireframe = false;
+                }
+                this.isWireGlitch = false;
+                // this.isEnd = true;
+                this.isMoveToFront_Pal = true;
+            }
+            if (this.isScaleZ) {
+                this.speedScaleZ *= 1.1;
+                this.scaleZ += this.speedScaleZ;
+                if (this.scaleZ <= 25.0) {
+                    this.scene.scale.set(1.2, 1, this.scaleZ);
+                }
+            }
+            this.renderer.setClearColor(0x000000);
+            // if(this._threshold <= 40.0)
+            // {
+            //     this._threshold += 0.2;
+            // }
+            this.time++;
+            this.gpuCompute.compute();
+            // this.cube.position.z = this.gui.parameters.threshold;
+            // this.cube.scale.set(0,0,0);
+            var timerStep = 0.004;
+            for (var i = 0; i < this.uniforms.length; i++) {
+                //console.log(this.uniforms[i]);
+                this.uniforms[i].texturePosition.value = this.gpuCompute.getCurrentRenderTarget(this.positionVariable).texture;
+                this.uniforms[i].time.value += timerStep;
+                // this.uniforms[i].threshold.value = this._threshold ;//Math.sin(time*0.0005)*30;//this.gui.parameters.threshold;
+            }
+            if (this.isMoveToFront_Pal) {
+                console.log(this.translateZ_pal);
+                if (this.translateZ_pal < -12.8) {
+                    // this.reset();
+                    // this.isMoveToFront_Pal= true;
+                    this.resetandgo();
+                }
+                if (this.translateZ_pal < -9.7 && this.translateZ_pal > -9.8) {
+                    var p = Math.random();
+                    if (p < 0.02) {
+                        if (Math.random() < 0.4) {
+                            this.isScaleZ = true;
+                            setTimeout(this.resetandgo, 2500);
+                        }
+                        else {
+                            this.isWireGlitch = true;
+                            setTimeout(this.resetandgo, 5000);
+                        }
+                        this.isMoveToFront_Pal = false;
+                    }
+                }
+                this.moveFlontSpeed += (0.0001 - this.moveFlontSpeed) * 0.3;
+                this.translateZ_pal -= this.moveFlontSpeed;
+                if (this.isEnd) {
+                    this.pal_objects[0].translateZ(0);
+                    this.pal_objects[0].translateY(this.translateZ_pal * 0.0005);
+                }
+                else {
+                    this.pal_objects[0].translateY(0);
+                    this.pal_objects[0].translateZ(-this.translateZ_pal * 0.0005);
+                }
+            }
+            // if(this.isImageUpdate)
+            // {
+            //     this.image_uniform.noiseScale.value = this.gui.parameters.image_noiseScale;
+            //     this.image_uniform.noiseSeed.value = this.gui.parameters.image_noiseSeed;
+            //     this.image_uniform.time.value += this.gui.parameters.image_speed;
+            //     this.image_uniform.noiseScale_vertex.value = this.gui.parameters.image_noiseScale_vertex;
+            //     this.image_uniform.noiseSeed_vertex.value = this.gui.parameters.image_noiseSeed_vertex;
+            //     this.image_uniform.time_scale_vertex.value = this.gui.parameters.image_speed_scale__vertex;
+            //     this.image_uniform.distance_threshold.value = this.gui.parameters.image_distance_threshold;
+            // }
+            //
+            // this.plane.position.set (
+            //     this.gui.parameters.image_positionX,
+            //     this.gui.parameters.image_positionY,
+            //     this.gui.parameters.image_positionZ,
+            // );
+            //
+            // this.planee.scale.set(14,14,14);
+            //this.scene.position.z += 0.1;
+            // this.cube.rotation.x += 0.1;
+            // this.cube.rotation.y += 0.1;
+            this.scene.rotation.setFromVector3(new THREE.Vector3(0, this.gui.parameters.scene_rotation_y, 0));
+        }
+    };
+    return Scene01;
+}());
+/* harmony default export */ __webpack_exports__["a"] = (Scene01);
+
+
+/***/ }),
+/* 3 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -413,7 +847,6 @@ var Scene02 = (function () {
             // for(let i = 0; i < this.pal.length; i++)
             // {
             _this.pal.position.set(-1, 0.5, 0);
-            r;
             // }
             _this.pal.translateY(0);
             _this.pal.translateZ(0);
@@ -540,7 +973,7 @@ var Scene02 = (function () {
             // console.log(this.isEnd);
         }
         if (e.key == "r") {
-            this.reset();
+            this.resetandgo();
         }
     };
     // ******************************************************
@@ -630,7 +1063,7 @@ var Scene02 = (function () {
             }
             if (this.isMoveToFront_Pal) {
                 console.log(this.translateZ_pal);
-                if (this.translateZ_pal < -12.8) {
+                if (this.translateZ_pal < -12.5) {
                     // this.reset();
                     // this.isMoveToFront_Pal= true;
                     this.resetandgo();
@@ -649,15 +1082,15 @@ var Scene02 = (function () {
                         this.isMoveToFront_Pal = false;
                     }
                 }
-                this.moveFlontSpeed += (0.001 - this.moveFlontSpeed) * 0.3;
+                this.moveFlontSpeed += (0.0001 - this.moveFlontSpeed) * 0.3;
                 this.translateZ_pal -= this.moveFlontSpeed;
                 if (this.isEnd) {
                     this.pal.translateZ(0);
-                    this.pal.translateY(this.translateZ_pal * 0.001);
+                    this.pal.translateY(this.translateZ_pal * 0.0005);
                 }
                 else {
                     this.pal.translateY(0);
-                    this.pal.translateZ(-this.translateZ_pal * 0.001);
+                    this.pal.translateZ(-this.translateZ_pal * 0.0005);
                 }
             }
             this.scene.rotation.setFromVector3(new THREE.Vector3(0, this.gui.parameters.scene_rotation_y, 0));
@@ -669,13 +1102,13 @@ var Scene02 = (function () {
 
 
 /***/ }),
-/* 3 */
+/* 4 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(10);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery__ = __webpack_require__(11);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0_jquery___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0_jquery__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__OrbitControls_js__ = __webpack_require__(14);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__OrbitControls_js__ = __webpack_require__(15);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__OrbitControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__OrbitControls_js__);
 // import "./stats.js";
 
@@ -897,7 +1330,7 @@ var VThree = (function () {
 
 
 /***/ }),
-/* 4 */
+/* 5 */
 /***/ (function(module, exports) {
 
 /*
@@ -1184,7 +1617,7 @@ THREE.DragControls.prototype.constructor = THREE.DragControls;
 
 
 /***/ }),
-/* 5 */
+/* 6 */
 /***/ (function(module, exports) {
 
 /**
@@ -1815,7 +2248,7 @@ THREE.TrackballControls.prototype.constructor = THREE.TrackballControls;
 
 
 /***/ }),
-/* 6 */
+/* 7 */
 /***/ (function(module, exports) {
 
 /**
@@ -7366,14 +7799,14 @@ THREE.ColladaLoader = function () {
 
 
 /***/ }),
-/* 7 */
+/* 8 */
 /***/ (function(module, exports, __webpack_require__) {
 
-module.exports = __webpack_require__(9)
-module.exports.color = __webpack_require__(8)
+module.exports = __webpack_require__(10)
+module.exports.color = __webpack_require__(9)
 
 /***/ }),
-/* 8 */
+/* 9 */
 /***/ (function(module, exports) {
 
 /**
@@ -8133,7 +8566,7 @@ dat.color.toString,
 dat.utils.common);
 
 /***/ }),
-/* 9 */
+/* 10 */
 /***/ (function(module, exports) {
 
 /**
@@ -11798,7 +12231,7 @@ dat.dom.dom,
 dat.utils.common);
 
 /***/ }),
-/* 10 */
+/* 11 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
@@ -21619,7 +22052,7 @@ return jQuery;
 
 
 /***/ }),
-/* 11 */
+/* 12 */
 /***/ (function(module, exports) {
 
 // stats.js - http://github.com/mrdoob/stats.js
@@ -21631,7 +22064,7 @@ a+"px",m=b,r=0);return b},update:function(){l=this.end()}}};"object"===typeof mo
 
 
 /***/ }),
-/* 12 */
+/* 13 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -21687,21 +22120,22 @@ var GUIParameters = (function () {
 
 
 /***/ }),
-/* 13 */
+/* 14 */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
 Object.defineProperty(__webpack_exports__, "__esModule", { value: true });
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__DragControls_js__ = __webpack_require__(4);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__DragControls_js__ = __webpack_require__(5);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_0__DragControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_0__DragControls_js__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__TrackballControls_js__ = __webpack_require__(5);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__TrackballControls_js__ = __webpack_require__(6);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_1__TrackballControls_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_1__TrackballControls_js__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__loaders_ColladaLoader_js__ = __webpack_require__(6);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__loaders_ColladaLoader_js__ = __webpack_require__(7);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_2__loaders_ColladaLoader_js___default = __webpack_require__.n(__WEBPACK_IMPORTED_MODULE_2__loaders_ColladaLoader_js__);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__vthree__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_3__vthree__ = __webpack_require__(4);
 /* harmony import */ var __WEBPACK_IMPORTED_MODULE_4__Mapper__ = __webpack_require__(1);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__Scene02__ = __webpack_require__(2);
-/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__GUI__ = __webpack_require__(0);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_5__Scene01__ = __webpack_require__(2);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_6__Scene02__ = __webpack_require__(3);
+/* harmony import */ var __WEBPACK_IMPORTED_MODULE_7__GUI__ = __webpack_require__(0);
 /**
  * Created by PurpleUma on 8/25/17.
  */
@@ -21719,17 +22153,18 @@ console.log(THREE);
 
 
 
+
 var Main = (function () {
     function Main() {
-        this.gui = new __WEBPACK_IMPORTED_MODULE_6__GUI__["a" /* default */]();
+        this.gui = new __WEBPACK_IMPORTED_MODULE_7__GUI__["a" /* default */]();
         // $.getJSON("json/guisetting.json" , (data) => {
         console.log("main start");
         this.vthree = new __WEBPACK_IMPORTED_MODULE_3__vthree__["a" /* default */](1.0, false);
-        // this.scene01 = new Scene01(this.vthree.renderer,this.gui, this.vthree);
-        this.scene02 = new __WEBPACK_IMPORTED_MODULE_5__Scene02__["a" /* default */](this.vthree.renderer, this.gui, this.vthree);
-        this.mapper = new __WEBPACK_IMPORTED_MODULE_4__Mapper__["a" /* default */](this.scene02);
+        this.scene01 = new __WEBPACK_IMPORTED_MODULE_5__Scene01__["a" /* default */](this.vthree.renderer, this.gui, this.vthree);
+        this.scene02 = new __WEBPACK_IMPORTED_MODULE_6__Scene02__["a" /* default */](this.vthree.renderer, this.gui, this.vthree);
+        this.mapper = new __WEBPACK_IMPORTED_MODULE_4__Mapper__["a" /* default */](this.scene01, this.scene02);
+        this.vthree.addScene(this.scene01);
         this.vthree.addScene(this.scene02);
-        // this.vthree.addScene(this.scene01);
         // }
         // this.vthree.draw();
     }
@@ -21741,7 +22176,7 @@ window.onload = function () {
 
 
 /***/ }),
-/* 14 */
+/* 15 */
 /***/ (function(module, exports) {
 
 /**

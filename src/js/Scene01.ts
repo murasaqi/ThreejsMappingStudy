@@ -340,11 +340,10 @@ export default class Scene01{
         if(e.key == "r")
 
         {
-            this.reset();
+            this.resetandgo();
         }
 
     }
-
 
     // ******************************************************
     public mouseMove(e:MouseEvent)
@@ -589,16 +588,16 @@ export default class Scene01{
                     this.isMoveToFront_Pal = false;
                 }
             }
-            this.moveFlontSpeed += (0.001 - this.moveFlontSpeed) * 0.3;
+            this.moveFlontSpeed += (0.0001 - this.moveFlontSpeed) * 0.3;
             this.translateZ_pal -= this.moveFlontSpeed;
             if(this.isEnd)
             {
 
                 this.pal_objects[0].translateZ(0);
-                this.pal_objects[0].translateY(this.translateZ_pal * 0.001);
+                this.pal_objects[0].translateY(this.translateZ_pal * 0.0005);
             } else {
                 this.pal_objects[0].translateY(0);
-                this.pal_objects[0].translateZ(-this.translateZ_pal * 0.001);
+                this.pal_objects[0].translateZ(-this.translateZ_pal * 0.0005);
             }
 
         }

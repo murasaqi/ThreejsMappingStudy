@@ -37,13 +37,17 @@ export default class Mapper{
 
     public rendertarget:THREE.WebGLRenderTarget;
     public scene01:any;
+    public scene02:any;
+    public SCENE_NUM:number = 0;
+
 
     public initPlaneVerices:THREE.Vector3[] = [];
 
 
     // ******************************************************
-    constructor(scnene01) {
+    constructor(scnene01,scene02) {
         this.scene01 = scnene01;
+        this.scene02 = scene02;
         this.createScene();
         this.animate();
 
@@ -222,6 +226,18 @@ export default class Mapper{
 
         }
 
+        if(e.key == "ArrowRight")
+        {
+            this.SCENE_NUM++;
+            if(this.SCENE_NUM == 2) this.SCENE_NUM = 0;
+        }
+
+        if(e.key == "ArrowLeft")
+        {
+            this.SCENE_NUM--;
+            if(this.SCENE_NUM < 0) this.SCENE_NUM = 1;
+        }
+
         if(e.key == "C")
         {
             this.controls.reset();
@@ -324,13 +340,22 @@ export default class Mapper{
 
         // this.screenMat.map = this.rendertarget.texture;
 
-        this.scene01.update();
+
 
         this.controls.update();
-        if(this.scene01.isUpdate)
-        {
-            this.renderer.render( this.scene01.scene, this.scene01.camera ,this.rendertarget);
-        }
+        // if(this.scene01.isUpdate)
+        // {
+            if(this.SCENE_NUM == 0)
+            {
+                this.scene01.update();
+                this.renderer.render( this.scene01.scene, this.scene01.camera ,this.rendertarget);
+            } else
+            {
+                this.scene02.update();
+                this.renderer.render( this.scene02.scene, this.scene02.camera ,this.rendertarget);
+            }
+
+        // }
 
 
         this.renderer.render( this.scene, this.camera );

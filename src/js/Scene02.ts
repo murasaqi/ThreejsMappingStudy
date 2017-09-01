@@ -296,7 +296,7 @@ export default class Scene02{
         if(e.key == "r")
 
         {
-            this.reset();
+            this.resetandgo();
         }
 
     }
@@ -345,7 +345,7 @@ export default class Scene02{
 
         // for(let i = 0; i < this.pal.length; i++)
         // {
-            this.pal.position.set(-1,0.5,0)r;
+            this.pal.position.set(-1,0.5,0);
         // }
 
 
@@ -507,7 +507,7 @@ export default class Scene02{
             if(this.isMoveToFront_Pal)
             {
                 console.log(this.translateZ_pal);
-                if(this.translateZ_pal < -12.8)
+                if(this.translateZ_pal < -12.5)
                 {
 
 
@@ -539,16 +539,16 @@ export default class Scene02{
                         this.isMoveToFront_Pal = false;
                     }
                 }
-                this.moveFlontSpeed += (0.001 - this.moveFlontSpeed) * 0.3;
+                this.moveFlontSpeed += (0.0001 - this.moveFlontSpeed) * 0.3;
                 this.translateZ_pal -= this.moveFlontSpeed;
                 if(this.isEnd)
                 {
 
                     this.pal.translateZ(0);
-                    this.pal.translateY(this.translateZ_pal * 0.001);
+                    this.pal.translateY(this.translateZ_pal * 0.0005);
                 } else {
                     this.pal.translateY(0);
-                    this.pal.translateZ(-this.translateZ_pal * 0.001);
+                    this.pal.translateZ(-this.translateZ_pal * 0.0005);
                 }
 
             }

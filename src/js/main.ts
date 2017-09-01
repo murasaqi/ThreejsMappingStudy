@@ -35,13 +35,15 @@ class Main
         // $.getJSON("json/guisetting.json" , (data) => {
             console.log("main start")
             this.vthree = new Vthree(1.0,false);
-            // this.scene01 = new Scene01(this.vthree.renderer,this.gui, this.vthree);
+            this.scene01 = new Scene01(this.vthree.renderer,this.gui, this.vthree);
             this.scene02 = new Scene02(this.vthree.renderer,this.gui, this.vthree);
-            this.mapper = new Mapper(this.scene02);
+            this.mapper = new Mapper(this.scene01,this.scene02);
 
 
+        this.vthree.addScene(this.scene01);
         this.vthree.addScene(this.scene02);
-            // this.vthree.addScene(this.scene01);
+
+
 
         // }
 
